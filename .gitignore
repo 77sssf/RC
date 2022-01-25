@@ -10,4 +10,12 @@
 # file
 /RemoteControl/RemoteControl.sln
 
+/RemoteControl/RCClient/RCClient.vcxproj
+/RemoteControl/RCClient/RCClient.vcxproj.filters
+/RemoteControl/RCClient/RCClient.vcxproj.user
+
+/RemoteControl/RemoteControl/RemoteControl.vcxproj
+/RemoteControl/RemoteControl/RemoteControl.vcxproj.filters
+/RemoteControl/RemoteControl/RemoteControl.vcxproj.user
+
 # log

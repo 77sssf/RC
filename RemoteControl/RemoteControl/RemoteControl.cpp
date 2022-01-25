@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "RemoteControl.h"
+#include "SrvSocket.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -34,7 +35,33 @@ int main()
         else
         {
             // TODO: code your application's behavior here.
-            //  git test
+            //  先写难度大的
+            //  1. 进度可控性
+            //  2. 方便对接
+            //  3. 可行性评估
+
+            
+            
+
+            CSrvSocket* pSockSrv = CSrvSocket::getInstance();
+            if (pSockSrv == NULL) {
+                return FALSE;
+            }
+
+            if (pSockSrv->initSocket() == FALSE) {
+                MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
+            }
+            
+            while (CSrvSocket::getInstance()) {
+				if (pSockSrv->acceptClient() == FALSE) {
+					MessageBox(NULL, TEXT("无法接入用户, 自动重试"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+				}
+
+                int ret = pSockSrv->dealRequest();
+
+            }
+            
+
         }
     }
     else
