@@ -3,70 +3,39 @@
 #include "pch.h"
 #include "framework.h"
 
-const int BUF_SIZ = 1024;
+const int BUF_SIZ = 4096;
+
+class CPacket {
+public:
+
+	CPacket();
+	CPacket(const CPacket& rhs);
+	CPacket& operator=(const CPacket& rhs);
+	CPacket(const BYTE* pData, size_t& nSize);
+	~CPacket();
+	WORD getCmd();
+
+private:
+
+	WORD sHead;	//  包头固定FFFE
+	DWORD nLength;	//  包长度(从控制命令开始到和校验结束)
+	WORD sCmd;
+	std::string strData;
+	WORD sSum;	//  和校验值
+};
 
 class CSrvSocket
 {
 public:
 	static CSrvSocket* getInstance();
-	BOOL initSocket() {
-		m_sockSrv = socket(PF_INET, SOCK_STREAM, 0);
-		if (m_sockSrv == INVALID_SOCKET) {
-			//  TODO : 初始化失败
-			return FALSE;
-		}
+	BOOL initSocket();
 
-		//  服务端IP信息
-		SOCKADDR_IN addrSrv = {};
-		addrSrv.sin_family = AF_INET;
-		addrSrv.sin_addr.S_un.S_addr = INADDR_ANY;
-		addrSrv.sin_port = htons(7070);
+	BOOL acceptClient();
 
-		if (bind(m_sockSrv, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR)) == SOCKET_ERROR) {
-			return FALSE;
-		}
+	BOOL dealRequest();
 
-		if (listen(m_sockSrv, 1) == SOCKET_ERROR) {
-			return FALSE;
-		}
-
-		return TRUE;
-	}
-
-	BOOL acceptClient() {
-		SOCKADDR_IN addrCli = {};
-		int len = sizeof(SOCKADDR);
-		m_sockCli = accept(m_sockSrv, (SOCKADDR*)&addrCli, &len);
-		if (m_sockCli == INVALID_SOCKET) {
-			return FALSE;
-		}
-		return TRUE;
-	}
-
-	BOOL dealRequest() {
-		if (m_sockCli == INVALID_SOCKET) {
-			return FALSE;
-		}
-
-		char buf[BUF_SIZ] = {};
-
-		while (true) {
-			int len = recv(m_sockCli, buf, BUF_SIZ, 0);
-
-			if (len <= 0) {
-				return FALSE;
-			}
-
-			//  TODO : 处理请求
-
-			
-		}
-	}
-
-	BOOL sendACK(const char* pData, int nSize) {
-		return send(m_sockCli, pData, nSize, 0);
-	}
-
+	BOOL sendACK(const char* pData, int nSize);
+	
 private:
 	
 	CSrvSocket();
@@ -89,6 +58,7 @@ private:
 	static CHelper m_helper;
 	SOCKET m_sockSrv;
 	SOCKET m_sockCli;
+	CPacket m_pkt;
 };
 
 //  extern CSrvSocket srv;  //  main函数之前初始化, main函数之后释放资源.

@@ -53,8 +53,15 @@ int main()
             }
             
             while (CSrvSocket::getInstance()) {
-				if (pSockSrv->acceptClient() == FALSE) {
-					MessageBox(NULL, TEXT("无法接入用户, 自动重试"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+                int cnt = 0;
+                if (pSockSrv->acceptClient() == FALSE) {
+                    if (cnt >= 3) {
+						MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+                        exit(0);
+                    }
+                    MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+                    Sleep(1000);
+                    cnt++;
 				}
 
                 int ret = pSockSrv->dealRequest();
