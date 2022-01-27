@@ -5,6 +5,7 @@
 #include "framework.h"
 #include "RemoteControl.h"
 #include "SrvSocket.h"
+#include <direct.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -16,6 +17,24 @@
 CWinApp theApp;
 
 using namespace std;
+
+
+
+BOOL MakeDriverInfo(){
+    std::string res;
+    //  _chdrive(); //  A盘 : 1 B盘 : 2 ... Z盘 : 26
+    for (int i = 1; i <= 26; ++i) {
+        if (!_chdrive(i)) {
+            if (res.size()) {
+                res += ',';
+            }
+            res += ('A' + i - 1);
+        }
+    }
+    CPacket pkt((WORD)1, (BYTE*)res.c_str(), res.size());
+    CSrvSocket::getInstance()->sendACK(CPacket((WORD)1, (BYTE*)res.c_str(), res.size()));
+    return TRUE;
+}
 
 int main()
 {
@@ -43,31 +62,31 @@ int main()
             
             
 
-            CSrvSocket* pSockSrv = CSrvSocket::getInstance();
-            if (pSockSrv == NULL) {
-                return FALSE;
-            }
-
-            if (pSockSrv->initSocket() == FALSE) {
-                MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
-            }
-            
-            while (CSrvSocket::getInstance()) {
-                int cnt = 0;
-                if (pSockSrv->acceptClient() == FALSE) {
-                    if (cnt >= 3) {
-						MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
-                        exit(0);
-                    }
-                    MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
-                    Sleep(1000);
-                    cnt++;
-				}
-
-                int ret = pSockSrv->dealRequest();
-
-            }
-            
+//             CSrvSocket* pSockSrv = CSrvSocket::getInstance();
+//             if (pSockSrv == NULL) {
+//                 return FALSE;
+//             }
+// 
+//             if (pSockSrv->initSocket() == FALSE) {
+//                 MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
+//             }
+//             
+//             while (CSrvSocket::getInstance()) {
+//                 int cnt = 0;
+//                 if (pSockSrv->acceptClient() == FALSE) {
+//                     if (cnt >= 3) {
+// 						MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+//                         exit(0);
+//                     }
+//                     MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+//                     Sleep(1000);
+//                     cnt++;
+// 				}
+// 
+//                 int ret = pSockSrv->dealRequest();
+// 
+//             }
+            MakeDriverInfo();
 
         }
     }

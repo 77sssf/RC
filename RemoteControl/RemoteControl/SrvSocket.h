@@ -3,17 +3,25 @@
 #include "pch.h"
 #include "framework.h"
 
+#pragma pack(push)
+#pragma pack(1)
+
 const int BUF_SIZ = 4096;
 
 class CPacket {
 public:
 
 	CPacket();
+	CPacket(WORD, const BYTE*, size_t);
 	CPacket(const CPacket& rhs);
 	CPacket& operator=(const CPacket& rhs);
 	CPacket(const BYTE* pData, size_t& nSize);
 	~CPacket();
-	WORD getCmd();
+
+	const char* getData();
+	WORD getCmd()const;
+	DWORD getLength()const;
+	
 
 private:
 
@@ -22,7 +30,10 @@ private:
 	WORD sCmd;
 	std::string strData;
 	WORD sSum;	//  和校验值
+
 };
+
+#pragma pack(pop)
 
 class CSrvSocket
 {
@@ -35,6 +46,7 @@ public:
 	BOOL dealRequest();
 
 	BOOL sendACK(const char* pData, int nSize);
+	BOOL sendACK(const CPacket&);
 	
 private:
 	

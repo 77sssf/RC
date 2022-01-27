@@ -134,6 +134,12 @@ BOOL CSrvSocket::sendACK(const char* pData, int nSize) {
 	return send(m_sockCli, pData, nSize, 0);
 }
 
+BOOL CSrvSocket::sendACK(const CPacket& tpkt) {
+	//  类中含有string类型成员变量
+	//  不能(const char*)&tpkt
+	return send(m_sockCli, tpkt.getData(), tpkt.getLength() + 2 + 4, 0);
+}
+
 
 CSrvSocket* CSrvSocket::m_instance = NULL;
 
@@ -209,10 +215,43 @@ CPacket& CPacket::operator=(const CPacket& rhs) {
 	return *this;
 }
 
+CPacket::CPacket(WORD cmd, const BYTE* pData, size_t nSize) : sHead(0), nLength(0), sCmd(0), sSum(0)  {
+	sHead = 0xFFFE;
+	nLength = nSize + 2 + 2;
+	sCmd = cmd;
+ 	strData.resize(nSize);
+ 	memcpy((void*)strData.c_str(), pData, nSize);
+	//strData = (const char*)pData;
+	for (size_t j = 0; j < strData.size(); ++j) {
+		sSum += (BYTE)strData[j];
+	}
+}
+
 CPacket::~CPacket() {
 
 }
 
-WORD CPacket::getCmd() {
+WORD CPacket::getCmd() const {
 	return sCmd;
+}
+
+DWORD CPacket::getLength() const {
+	return nLength;
+}
+
+const char* CPacket::getData() {
+	std::string str;
+	str.resize(nLength + 2 + 4);
+	char* pData = (char*)str.c_str();
+	*(WORD*)pData = sHead;
+	pData += 2;
+	*(DWORD*)pData = nLength;
+	pData += 4;
+	*(WORD*)pData = sCmd;
+	pData += 2;
+	memcpy(pData, strData.c_str(), strData.size());
+	pData += strData.size();
+	*(WORD*)pData = sSum;
+
+	return str.c_str();
 }
