@@ -42,6 +42,18 @@ private:
 
 #pragma pack(pop)
 
+typedef struct _MOUSEVENT{
+
+	_MOUSEVENT() : nAction(0), nButton(-1), ptXY{0, 0} {
+	
+	}
+
+	WORD nAction;	//  ÒÆ¶¯»òµã»÷
+	WORD nButton;	//  ×ó¼ü, ÓÒ¼ü
+	POINT ptXY;
+
+}MOUSEVENT, *PMOUSEVENT;
+
 class CSrvSocket
 {
 public:
@@ -56,6 +68,7 @@ public:
 	BOOL sendACK(const CPacket&);
 	
 	BOOL getFilePath(std::string& filePath);
+	BOOL getMouseEvent(MOUSEVENT& mouse);
 
 private:
 	

@@ -283,3 +283,12 @@ BOOL CSrvSocket::getFilePath(std::string& filePath) {
 std::string CPacket::getStrData() const {
 	return strData;
 }
+
+BOOL CSrvSocket::getMouseEvent(MOUSEVENT& mouse) {
+	if (m_pkt.getCmd() != 5) {
+		return FALSE;
+	}
+	//  ÒÆ¶¯, µã»÷(µ¥»÷, Ë«»÷)
+	memcpy(&mouse, m_pkt.getStrData().c_str(), sizeof(MOUSEVENT));
+	return TRUE;
+}
