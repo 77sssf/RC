@@ -6,6 +6,8 @@
 #include "RemoteControl.h"
 #include "SrvSocket.h"
 #include <direct.h>
+#include <io.h>
+#include <list>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -16,7 +18,15 @@
 
 CWinApp theApp;
 
-using namespace std;
+typedef struct _FILEINFO{
+    _FILEINFO() : szFileName{}, IsInvalid(FALSE), IsDirectory(FALSE), HasNext(TRUE) {
+    
+    }
+    char szFileName[MAX_PATH];
+    BOOL IsInvalid; //  是否有效
+    BOOL IsDirectory;
+    BOOL HasNext;   //  是否还有后续
+}FILEINFO, *PFILEINFO;
 
 
 
@@ -31,8 +41,57 @@ BOOL MakeDriverInfo(){
             res += ('A' + i - 1);
         }
     }
-    CPacket pkt((WORD)1, (BYTE*)res.c_str(), res.size());
     CSrvSocket::getInstance()->sendACK(CPacket((WORD)1, (BYTE*)res.c_str(), res.size()));
+    return TRUE;
+}
+
+
+BOOL MakeDirectoryInfo() {
+    
+    std::string filePath;
+    //std::list<FILEINFO> lst;
+
+    if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
+        //  cmd != 2
+        return FALSE;
+    }
+
+    //  切换_chdir
+    if (_chdir(filePath.c_str())) {
+        //  切换失败
+        //  没有权限或路径错误
+        return FALSE;
+    }
+
+    //  遍历文件
+    _finddata_t fdata = {};
+    intptr_t hFile = 0;
+    if ((hFile = _findfirst("*", &fdata)) == -1) {
+        //  没有找到任何文件
+        return FALSE;
+    }
+
+    do {
+
+        FILEINFO fifo = {};
+        fifo.IsInvalid = FALSE;
+        fifo.IsDirectory = (fdata.attrib & _A_SUBDIR) ? TRUE : FALSE;
+        memcpy(fifo.szFileName, fdata.name, strlen(fdata.name));
+        //lst.push_back(fifo);
+        CSrvSocket::getInstance()->sendACK(CPacket(2, (BYTE*)&fifo, sizeof(fifo)));
+
+    } while (!_findnext(hFile, &fdata));
+    
+    FILEINFO fifo;
+    fifo.HasNext = FALSE;
+    CSrvSocket::getInstance()->sendACK(CPacket(2, (BYTE*)&fifo, sizeof(fifo)));
+
+    _findclose(hFile);
+
+    //  封包发送到客户端
+    //  一次性发送, 如果文件太多, 客户端会等待很久
+    //  有一个发一个, 标记是否是最后一个文件
+
     return TRUE;
 }
 
@@ -86,7 +145,18 @@ int main()
 //                 int ret = pSockSrv->dealRequest();
 // 
 //             }
-            MakeDriverInfo();
+            int nCmd = 1;
+            switch (nCmd) {
+            case 1: //  获取盘符
+                MakeDriverInfo();
+                break;
+            case 2: //  查看指定目录下的文件
+                MakeDirectoryInfo();
+                break;
+            default:
+                break;
+            }
+            
 
         }
     }

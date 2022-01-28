@@ -18,10 +18,16 @@ public:
 	CPacket(const BYTE* pData, size_t& nSize);
 	~CPacket();
 
-	const char* getData();
+	
+	
 	WORD getCmd()const;
 	DWORD getLength()const;
-	
+	const char* getData() const;
+	std::string getStrData() const;
+
+private:
+
+	void calcData();
 
 private:
 
@@ -29,6 +35,7 @@ private:
 	DWORD nLength;	//  包长度(从控制命令开始到和校验结束)
 	WORD sCmd;
 	std::string strData;
+	std::string strRes;
 	WORD sSum;	//  和校验值
 
 };
@@ -48,6 +55,8 @@ public:
 	BOOL sendACK(const char* pData, int nSize);
 	BOOL sendACK(const CPacket&);
 	
+	BOOL getFilePath(std::string& filePath);
+
 private:
 	
 	CSrvSocket();

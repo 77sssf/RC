@@ -120,7 +120,7 @@ int CSrvSocket::dealRequest() {
 		//  TODO : 处理请求
 		idx = len;
 
-		m_pkt = CPacket((BYTE*)buf, tlen);
+		m_pkt = CPacket((BYTE*)buf, tlen);	//  重载CPacket类的赋值运算符
 		if (tlen > 0) {
 			memmove(buf, buf + len, BUF_SIZ - tlen);
 			idx -= tlen;
@@ -137,6 +137,7 @@ BOOL CSrvSocket::sendACK(const char* pData, int nSize) {
 BOOL CSrvSocket::sendACK(const CPacket& tpkt) {
 	//  类中含有string类型成员变量
 	//  不能(const char*)&tpkt
+	//const char* p = tpkt.getData();
 	return send(m_sockCli, tpkt.getData(), tpkt.getLength() + 2 + 4, 0);
 }
 
@@ -196,6 +197,8 @@ CPacket::CPacket(const BYTE* pData, size_t& nSize) : sHead(0), nLength(0), sCmd(
 	else {
 		nSize = 0;
 	}
+
+	calcData();
 }
 
 CPacket::CPacket(const CPacket& rhs) {
@@ -204,6 +207,8 @@ CPacket::CPacket(const CPacket& rhs) {
 	sCmd = rhs.sCmd;
 	strData = rhs.strData;
 	sSum = rhs.sSum;
+
+	calcData();
 }
 
 CPacket& CPacket::operator=(const CPacket& rhs) {
@@ -212,6 +217,7 @@ CPacket& CPacket::operator=(const CPacket& rhs) {
 	sCmd = rhs.sCmd;
 	strData = rhs.strData;
 	sSum = rhs.sSum;
+	calcData();
 	return *this;
 }
 
@@ -225,6 +231,7 @@ CPacket::CPacket(WORD cmd, const BYTE* pData, size_t nSize) : sHead(0), nLength(
 	for (size_t j = 0; j < strData.size(); ++j) {
 		sSum += (BYTE)strData[j];
 	}
+	calcData();
 }
 
 CPacket::~CPacket() {
@@ -239,10 +246,13 @@ DWORD CPacket::getLength() const {
 	return nLength;
 }
 
-const char* CPacket::getData() {
-	std::string str;
-	str.resize(nLength + 2 + 4);
-	char* pData = (char*)str.c_str();
+const char* CPacket::getData() const {
+	return strRes.c_str();
+}
+
+void CPacket::calcData() {
+	strRes.resize(nLength + 2 + 4);
+	char* pData = (char*)strRes.c_str();
 	*(WORD*)pData = sHead;
 	pData += 2;
 	*(DWORD*)pData = nLength;
@@ -253,5 +263,17 @@ const char* CPacket::getData() {
 	pData += strData.size();
 	*(WORD*)pData = sSum;
 
-	return str.c_str();
+	//return str.c_str();		//  BUG : 返回局部变量的地址
+}
+
+BOOL CSrvSocket::getFilePath(std::string& filePath) {
+	if (m_pkt.getCmd() != 2) {
+		return FALSE;
+	}
+	filePath = m_pkt.getStrData();
+	return TRUE;
+}
+
+std::string CPacket::getStrData() const {
+	return strData;
 }
