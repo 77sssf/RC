@@ -225,8 +225,14 @@ CPacket::CPacket(WORD cmd, const BYTE* pData, size_t nSize) : sHead(0), nLength(
 	sHead = 0xFFFE;
 	nLength = nSize + 2 + 2;
 	sCmd = cmd;
- 	strData.resize(nSize);
- 	memcpy((void*)strData.c_str(), pData, nSize);
+	if (nSize > 0) {
+		strData.resize(nSize);
+		memcpy((void*)strData.c_str(), pData, nSize);
+	}
+	else {
+		strData.clear();
+	}
+ 	
 	//strData = (const char*)pData;
 	for (size_t j = 0; j < strData.size(); ++j) {
 		sSum += (BYTE)strData[j];
@@ -267,7 +273,7 @@ void CPacket::calcData() {
 }
 
 BOOL CSrvSocket::getFilePath(std::string& filePath) {
-	if (m_pkt.getCmd() != 2) {
+	if (m_pkt.getCmd() <= 4 && m_pkt.getCmd() >= 2) {
 		return FALSE;
 	}
 	filePath = m_pkt.getStrData();

@@ -95,6 +95,45 @@ BOOL MakeDirectoryInfo() {
     return TRUE;
 }
 
+BOOL RunFile() {
+    std::string filePath;
+	if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
+		return FALSE;
+	}
+    ShellExecuteA(NULL, NULL, filePath.c_str(), NULL, NULL, SW_SHOWNORMAL);
+    CSrvSocket::getInstance()->sendACK(CPacket(3, NULL, 0)); //  传递空, sendACK是否判断空指针的情况
+    return TRUE;
+}
+
+BOOL DownloadFile() {
+	std::string filePath;
+    long long dlen = 0;
+	if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
+		return FALSE;
+	}
+    FILE* pf = fopen(filePath.c_str(), "rb");
+    if (pf == NULL) {
+        CSrvSocket::getInstance()->sendACK(CPacket(4, (BYTE*)&dlen, 8));
+        return FALSE;
+    }
+
+    fseek(pf, 0, SEEK_END);
+    dlen = _ftelli64(pf);
+    fseek(pf, 0, SEEK_SET);
+    CSrvSocket::getInstance()->sendACK(CPacket(4, (BYTE*)&dlen, 8));    //  文件大小
+
+    char buf[1024] = {};
+    size_t rlen = 0;
+    do {
+        rlen = fread(buf, 1, 1024, pf);
+        CSrvSocket::getInstance()->sendACK(CPacket(4, (BYTE*)buf, rlen));
+    } while (rlen >= 1024);
+    CSrvSocket::getInstance()->sendACK(CPacket(4, NULL, 0));    //  代表结尾
+    fclose(pf);
+    return TRUE;
+}
+
+
 int main()
 {
     int nRetCode = 0;
@@ -152,6 +191,12 @@ int main()
                 break;
             case 2: //  查看指定目录下的文件
                 MakeDirectoryInfo();
+                break;
+            case 3: //  打开文件
+                RunFile();
+                break;
+            case 4: //  下载文件
+                DownloadFile();
                 break;
             default:
                 break;
