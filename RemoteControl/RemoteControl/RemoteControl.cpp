@@ -21,6 +21,7 @@
 
 CWinApp theApp;
 CLockDialog dlg;
+unsigned int TID;
 
 typedef struct _FILEINFO{
     _FILEINFO() : szFileName{}, IsInvalid(FALSE), IsDirectory(FALSE), HasNext(TRUE) {
@@ -283,31 +284,62 @@ BOOL SendScreen() {
     return TRUE;
 }
 
-BOOL LockMachine() {
+unsigned int __stdcall  threadLoackMachine(void* arg) {
 
-    //  弹出消息 : 已锁机, 请联系管理员解锁
-    //  消息框最顶层
-    //
+	//  弹出消息 : 已锁机, 请联系管理员解锁
+	//  消息框最顶层
+
 	dlg.Create(IDD_DIALOG_INFO);
+	dlg.ShowWindow(SW_SHOW);
+	::ShowWindow(::FindWindow(TEXT("Shell_TrayWnd"), NULL), SW_HIDE);
+	dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
-    dlg.ShowWindow(SW_SHOW);
-    dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	CRect rect = { 0, 0, (int)(GetSystemMetrics(SM_CXFULLSCREEN) * 1.2), (int)(GetSystemMetrics(SM_CYFULLSCREEN) * 1.2) };
 
-    MSG msg = {};
+	dlg.MoveWindow(rect);
 
-    while (GetMessage(&msg, NULL, 0, 0)) {
+
+
+
+	ShowCursor(false);
+	ClipCursor(CRect(0, 0, 0, 0));
+
+	MSG msg = {};
+
+	while (GetMessage(&msg, NULL, 0, 0)) {
 		if (msg.message == WM_KEYDOWN && msg.wParam == 0x1B) {
 			break;
 		}
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	//dlg.DestroyWindow();
+
+	ShowCursor(TRUE);
+	::ShowWindow(::FindWindow(TEXT("Shell_TrayWnd"), NULL), SW_SHOW);
+    
     dlg.DestroyWindow();
+
+    _endthreadex(0);
+    return 0;
+}
+
+BOOL LockMachine() {
+
+    if (!dlg.m_hWnd || dlg.m_hWnd == INVALID_HANDLE_VALUE) {
+        //_beginthread(threadLoackMachine, 0, NULL);
+        _beginthreadex(NULL, 0, threadLoackMachine, NULL, 0, &TID);
+    }
+
+	CSrvSocket::getInstance()->sendACK(CPacket(7, NULL, 0));
 
     return TRUE;
 }
 
 BOOL UnLockMachine() {
+
+    //SendMessage(dlg.m_hWnd, WM_KEYDOWN, 0x1B, 0x01E0001);   //  不在同一线程
+    PostThreadMessage(TID, WM_KEYDOWN, 0x1B, 0x01E0001);
 
     return TRUE;
 }
@@ -394,7 +426,11 @@ int main()
                 break;
             }
             
-            //while (1) {}
+            Sleep(5000);
+            UnLockMachine();
+            while (dlg.m_hWnd) {
+                Sleep(2000);
+            }
         }
     }
     else
