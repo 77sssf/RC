@@ -7,8 +7,10 @@
 #include "SrvSocket.h"
 #include <direct.h>
 #include <io.h>
-#include <list>
+//#include <list>
 #include <atlimage.h>
+#include "LockDialog.h"
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -18,6 +20,7 @@
 // The one and only application object
 
 CWinApp theApp;
+CLockDialog dlg;
 
 typedef struct _FILEINFO{
     _FILEINFO() : szFileName{}, IsInvalid(FALSE), IsDirectory(FALSE), HasNext(TRUE) {
@@ -280,6 +283,35 @@ BOOL SendScreen() {
     return TRUE;
 }
 
+BOOL LockMachine() {
+
+    //  弹出消息 : 已锁机, 请联系管理员解锁
+    //  消息框最顶层
+    //
+	dlg.Create(IDD_DIALOG_INFO);
+
+    dlg.ShowWindow(SW_SHOW);
+    dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+
+    MSG msg = {};
+
+    while (GetMessage(&msg, NULL, 0, 0)) {
+		if (msg.message == WM_KEYDOWN && msg.wParam == 0x1B) {
+			break;
+		}
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    dlg.DestroyWindow();
+
+    return TRUE;
+}
+
+BOOL UnLockMachine() {
+
+    return TRUE;
+}
+
 
 int main()
 {
@@ -331,7 +363,8 @@ int main()
 //                 int ret = pSockSrv->dealRequest();
 // 
 //             }
-            int nCmd = 6;
+
+            int nCmd = 7;
             switch (nCmd) {
             case 1: //  获取盘符
                 MakeDriverInfo();
@@ -351,11 +384,17 @@ int main()
             case 6: //  发送屏幕截图
                 SendScreen();
                 break;
+            case 7: //  锁机 : 禁止操作
+                LockMachine();
+                break;
+            case 8: //  解锁
+				UnLockMachine();
+                break;
             default:
                 break;
             }
             
-
+            //while (1) {}
         }
     }
     else
