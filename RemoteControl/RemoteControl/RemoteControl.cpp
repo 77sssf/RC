@@ -8,6 +8,7 @@
 #include <direct.h>
 #include <io.h>
 #include <list>
+#include <atlimage.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -240,6 +241,46 @@ BOOL MouseEvent() {
 }
 
 
+BOOL SendScreen() {
+    CImage screen;
+    HDC hScreen = ::GetDC(NULL);
+    int nBitPerPixel = GetDeviceCaps(hScreen, BITSPIXEL);   //  一个像素用多少个bit, 带透明度的ARGB8888 32bit, RGB888 24真色彩
+    int nWidth = GetDeviceCaps(hScreen, HORZRES);
+	int nHeight = GetDeviceCaps(hScreen, VERTRES);
+
+    screen.Create(nWidth, nHeight, nBitPerPixel);
+    BitBlt(screen.GetDC(), 0, 0, nWidth, nHeight, hScreen, 0, 0, SRCCOPY);
+
+    ReleaseDC(NULL, hScreen);
+
+    //screen.Save(TEXT("test2022.png"), Gdiplus::ImageFormatPNG);
+	//screen.Save(TEXT("test2020.jpg"), Gdiplus::ImageFormatJPEG);
+
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+    if (hMem == NULL) {
+        
+    }
+    IStream* pStream = NULL;
+
+    HRESULT ret = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+    if (ret == S_OK) {
+        screen.Save(pStream, Gdiplus::ImageFormatPNG);
+        LARGE_INTEGER li = {};
+        pStream->Seek(li, SEEK_SET, NULL);
+        PBYTE pData = (PBYTE)GlobalLock(hMem);
+        SIZE_T nSize = GlobalSize(hMem);
+        CSrvSocket::getInstance()->sendACK(CPacket(6, pData, nSize));
+		GlobalUnlock(hMem);
+    }
+
+    screen.ReleaseDC();
+    pStream->Release();
+    GlobalFree(hMem);
+
+    return TRUE;
+}
+
+
 int main()
 {
     int nRetCode = 0;
@@ -290,7 +331,7 @@ int main()
 //                 int ret = pSockSrv->dealRequest();
 // 
 //             }
-            int nCmd = 1;
+            int nCmd = 6;
             switch (nCmd) {
             case 1: //  获取盘符
                 MakeDriverInfo();
@@ -306,6 +347,9 @@ int main()
                 break;
             case 5: //  鼠标操作
                 MouseEvent();
+                break;
+            case 6: //  发送屏幕截图
+                SendScreen();
                 break;
             default:
                 break;
