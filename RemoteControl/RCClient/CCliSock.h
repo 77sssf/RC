@@ -3,6 +3,7 @@
 #include "pch.h"
 #include "pkt.h"
 #include <string>
+#include <vector>
 
 const int BUF_SIZ = 4096;
 
@@ -31,7 +32,9 @@ public:
 
 	BOOL getFilePath(std::string&);
 	BOOL getMouseEvent(MOUSEVENT&);
+	WORD getCmd() const;
 
+	BOOL closeSock();
 private:
 
 	CCliSocket();
@@ -54,4 +57,5 @@ private:
 	static CHelper m_helper;
 	SOCKET m_sockCli;
 	CPkt m_pkt;
+	std::vector<char> m_buf;
 };

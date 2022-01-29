@@ -344,6 +344,44 @@ BOOL UnLockMachine() {
     return TRUE;
 }
 
+void connectTest() {
+    CSrvSocket::getInstance()->sendACK(CPkt(7777, NULL, 0));
+}
+
+void execCmd(int nCmd) {
+	
+	switch (nCmd) {
+	case 1: //  获取盘符
+		MakeDriverInfo();
+		break;
+	case 2: //  查看指定目录下的文件
+		MakeDirectoryInfo();
+		break;
+	case 3: //  打开文件
+		RunFile();
+		break;
+	case 4: //  下载文件
+		DownloadFile();
+		break;
+	case 5: //  鼠标操作
+		MouseEvent();
+		break;
+	case 6: //  发送屏幕截图
+		SendScreen();
+		break;
+	case 7: //  锁机 : 禁止操作
+		LockMachine();
+		break;
+	case 8: //  解锁
+		UnLockMachine();
+		break;
+    case 7777:
+        connectTest();
+        break;
+	default:
+		break;
+	}
+}
 
 int main()
 {
@@ -371,65 +409,32 @@ int main()
             
             
 
-//             CSrvSocket* pSockSrv = CSrvSocket::getInstance();
-//             if (pSockSrv == NULL) {
-//                 return FALSE;
-//             }
-// 
-//             if (pSockSrv->initSocket() == FALSE) {
-//                 MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
-//             }
-//             
-//             while (CSrvSocket::getInstance()) {
-//                 int cnt = 0;
-//                 if (pSockSrv->acceptClient() == FALSE) {
-//                     if (cnt >= 3) {
-// 						MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
-//                         exit(0);
-//                     }
-//                     MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
-//                     Sleep(1000);
-//                     cnt++;
-// 				}
-// 
-//                 int ret = pSockSrv->dealRequest();
-// 
-//             }
+            CSrvSocket* pSockSrv = CSrvSocket::getInstance();
+            if (pSockSrv == NULL) {
+                return FALSE;
+            }
 
-            int nCmd = 7;
-            switch (nCmd) {
-            case 1: //  获取盘符
-                MakeDriverInfo();
-                break;
-            case 2: //  查看指定目录下的文件
-                MakeDirectoryInfo();
-                break;
-            case 3: //  打开文件
-                RunFile();
-                break;
-            case 4: //  下载文件
-                DownloadFile();
-                break;
-            case 5: //  鼠标操作
-                MouseEvent();
-                break;
-            case 6: //  发送屏幕截图
-                SendScreen();
-                break;
-            case 7: //  锁机 : 禁止操作
-                LockMachine();
-                break;
-            case 8: //  解锁
-				UnLockMachine();
-                break;
-            default:
-                break;
+            if (pSockSrv->initSocket() == FALSE) {
+                MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
             }
             
-            Sleep(5000);
-            UnLockMachine();
-            while (dlg.m_hWnd) {
-                Sleep(2000);
+            while (CSrvSocket::getInstance()) {
+                int cnt = 0;
+                if (pSockSrv->acceptClient() == FALSE) {
+                    if (cnt >= 3) {
+						MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+                        exit(0);
+                    }
+                    MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+                    Sleep(1000);
+                    cnt++;
+				}
+
+                int ret = pSockSrv->dealRequest();
+
+                execCmd(ret);
+
+                pSockSrv->closeClient();
             }
         }
     }

@@ -28,17 +28,18 @@ public:
 	BOOL acceptClient();
 	BOOL dealRequest();
 
-	BOOL sendACK(const char* pData, int nSize);
+	BOOL sendACK(const char*, int);
 	BOOL sendACK(const CPkt&);
 	
-	BOOL getFilePath(std::string& filePath);
-	BOOL getMouseEvent(MOUSEVENT& mouse);
+	BOOL getFilePath(std::string&);
+	BOOL getMouseEvent(MOUSEVENT&);
+	BOOL closeClient();
 
 private:
 	
 	CSrvSocket();
 	~CSrvSocket();
-	CSrvSocket(const CSrvSocket& rhs);
+	CSrvSocket(const CSrvSocket&);
 	//CSrvSocket& operator=(const CSrvSocket& rhs);
 
 	BOOL InitWSA();

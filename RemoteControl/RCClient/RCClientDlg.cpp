@@ -7,6 +7,7 @@
 #include "RCClient.h"
 #include "RCClientDlg.h"
 #include "afxdialogex.h"
+#include "CCliSock.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -65,6 +66,7 @@ BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_BTN_TEST, &CRCClientDlg::OnBnClickedBtnTest)
 END_MESSAGE_MAP()
 
 
@@ -153,3 +155,19 @@ HCURSOR CRCClientDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void CRCClientDlg::OnBnClickedBtnTest()
+{
+	// TODO: Add your control notification handler code here
+	CCliSocket* pSockCli = CCliSocket::getInstance();
+	if (pSockCli->initSocket("127.0.0.1") == FALSE) {
+		//  ... 
+	}
+	else {
+		AfxMessageBox(TEXT("已连接至服务器"));
+		pSockCli->sendACK(CPkt(7777, NULL, 0));
+		pSockCli->dealRequest();
+		TRACE(TEXT("ack : %d \r\n"), pSockCli->getCmd());
+	}
+}

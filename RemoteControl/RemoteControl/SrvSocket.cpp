@@ -28,7 +28,7 @@ CSrvSocket::CHelper::~CHelper() {
 	CSrvSocket::releaseInstance();
 }
 
-CSrvSocket::CSrvSocket() : m_sockSrv(INVALID_SOCKET), m_sockCli(INVALID_SOCKET) {
+CSrvSocket::CSrvSocket() : m_sockSrv(INVALID_SOCKET), m_sockCli(INVALID_SOCKET), m_pkt() {
 	printf("CSrvSock()\n");
 
 	if (!InitWSA()) {
@@ -37,7 +37,7 @@ CSrvSocket::CSrvSocket() : m_sockSrv(INVALID_SOCKET), m_sockCli(INVALID_SOCKET) 
 	}
 }
 
-CSrvSocket::CSrvSocket(const CSrvSocket& rhs) : m_sockSrv(INVALID_SOCKET), m_sockCli(INVALID_SOCKET) {
+CSrvSocket::CSrvSocket(const CSrvSocket& rhs) : m_sockSrv(INVALID_SOCKET), m_sockCli(INVALID_SOCKET), m_pkt(){
 
 }
 
@@ -104,7 +104,9 @@ int CSrvSocket::dealRequest() {
 
 	char* buf = new char[BUF_SIZ];
 	memset(buf, 0, BUF_SIZ);
-
+	if (buf == NULL) {
+		return FALSE;
+	}
 	//  包头 FFFE
 	//  长度
 	//  命令
@@ -112,11 +114,13 @@ int CSrvSocket::dealRequest() {
 	//  校验
 	int idx = 0;
 	while (true) {
+
 		int len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
 
 		size_t tlen = len;
 
 		if (len <= 0) {
+			delete[] buf;
 			return FALSE;
 		}
 
@@ -127,6 +131,7 @@ int CSrvSocket::dealRequest() {
 		if (tlen > 0) {
 			memmove(buf, buf + len, BUF_SIZ - tlen);
 			idx -= tlen;
+			delete[] buf;
 			return m_pkt.getCmd();
 		}
 	}
@@ -157,5 +162,13 @@ BOOL CSrvSocket::getMouseEvent(MOUSEVENT& mouse) {
 	}
 	//  移动, 点击(单击, 双击)
 	memcpy(&mouse, m_pkt.getStrData().c_str(), sizeof(MOUSEVENT));
+	return TRUE;
+}
+
+BOOL CSrvSocket::closeClient(/*SOCKET& s*/) {
+// 	closesocket(s);
+// 	s = INVALID_SOCKET;
+	closesocket(m_sockCli);
+	m_sockCli = INVALID_SOCKET;
 	return TRUE;
 }

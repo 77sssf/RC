@@ -5,7 +5,26 @@
 CCliSocket* CCliSocket::m_instance = NULL;
 CCliSocket::CHelper CCliSocket::m_helper;
 
-std::string GetErrorInfo(int wsaErrCode) {
+CCliSocket* CCliSocket::getInstance() {
+	if (m_instance == NULL) {
+		m_instance = new CCliSocket;
+	}
+	return m_instance;
+}
+
+void CCliSocket::releaseInstance() {
+	delete m_instance;
+}
+
+CCliSocket::CHelper::CHelper() {
+	CCliSocket::getInstance();
+}
+
+CCliSocket::CHelper::~CHelper() {
+	CCliSocket::releaseInstance();
+}
+
+std::string GetErrInfo(int wsaErrCode) {
 	std::string res;
 	LPVOID lpMsgBuf = NULL;
 	FormatMessage(
@@ -22,16 +41,18 @@ std::string GetErrorInfo(int wsaErrCode) {
 	return res;
 }
 
-CCliSocket::CCliSocket() : m_sockCli(INVALID_SOCKET) {
-	printf("CSrvSock()\n");
+CCliSocket::CCliSocket() : m_sockCli(INVALID_SOCKET), m_pkt() {
+	//printf("CliSock()\n");
 
 	if (!InitWSA()) {
 		MessageBox(NULL, TEXT("无法初始化套接字, 请检查网络环境"), TEXT("初始化错误"), MB_OK | MB_ICONERROR);
 		exit(0);
 	}
+
+	m_buf.resize(BUF_SIZ);
 }
 
-CCliSocket::CCliSocket(const CCliSocket&) {
+CCliSocket::CCliSocket(const CCliSocket&) : m_sockCli(INVALID_SOCKET), m_pkt() {
 	
 }
 
@@ -41,13 +62,6 @@ CCliSocket::~CCliSocket() {
 	WSACleanup();
 }
 
-CCliSocket* CCliSocket::getInstance() {
-
-}
-
-void CCliSocket::releaseInstance() {
-	
-}
 
 BOOL CCliSocket::InitWSA() {
 	//  TODO : 1. socket
@@ -60,6 +74,10 @@ BOOL CCliSocket::InitWSA() {
 }
 
 BOOL CCliSocket::initSocket(const std::string& IP_ADDR) {
+	
+	if (m_sockCli != INVALID_SOCKET) {
+		closeSock();
+	}
 
 	m_sockCli = socket(PF_INET, SOCK_STREAM, 0);
 	if (m_sockCli == INVALID_SOCKET) {
@@ -80,13 +98,65 @@ BOOL CCliSocket::initSocket(const std::string& IP_ADDR) {
 
 	if (connect(m_sockCli, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 		AfxMessageBox(TEXT("连接服务器失败"));
-		TRACE(TEXT("连接失败 : %d %s\r\n", WSAGetLastError(), GetErrorInfo(WSAGetLastError()).c_str()));
+		TRACE(TEXT("连接失败 : %d %s\r\n"), WSAGetLastError(), GetErrInfo(WSAGetLastError()).c_str());
 		return FALSE;
 	}
 
 	return TRUE;
 }
 
-BOOL CCliSocket::dealRequest() {
-	
+int CCliSocket::dealRequest() {
+
+	//char buf[BUF_SIZ] = {};		//  local variable
+
+	char* buf = m_buf.data();
+	memset(buf, 0, BUF_SIZ);
+
+	//  包头 FFFE
+	//  长度
+	//  命令
+	//  数据
+	//  校验
+	int idx = 0;
+	while (true) {
+		int len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
+
+		size_t tlen = len;
+
+		if (len <= 0) {
+			return FALSE;
+		}
+
+		//  TODO : 处理请求
+		idx = len;
+
+		m_pkt = CPkt((BYTE*)buf, tlen);	//  重载CPacket类的赋值运算符
+		if (tlen > 0) {
+			memmove(buf, buf + len, BUF_SIZ - tlen);
+			idx -= tlen;
+			return m_pkt.getCmd();
+		}
+	}
+}
+
+BOOL CCliSocket::sendACK(const char* pData, int nSize) {
+	return send(m_sockCli, pData, nSize, 0);
+}
+
+BOOL CCliSocket::sendACK(const CPkt& tpkt) {
+	//  类中含有string类型成员变量
+	//  不能(const char*)&tpkt
+	//const char* p = tpkt.getData();
+	return send(m_sockCli, tpkt.getData(), tpkt.getLength() + 2 + 4, 0);
+}
+
+
+WORD CCliSocket::getCmd() const {
+	return m_pkt.getCmd();
+}
+
+BOOL CCliSocket::closeSock() {
+	closesocket(m_sockCli);
+	m_sockCli = INVALID_SOCKET;
+	return TRUE;
 }
