@@ -1,28 +1,9 @@
 #include "pch.h"
 #include "SrvSocket.h"
 
-CSrvSocket::CSrvSocket() : m_sockSrv(INVALID_SOCKET), m_sockCli(INVALID_SOCKET) {
-	printf("CSrvSock()\n");
 
-	if (!InitWSA()) {
-		MessageBox(NULL, TEXT("无法初始化套接字, 请检查网络环境"), TEXT("初始化错误"), MB_OK | MB_ICONERROR);
-		exit(0);
-	}
-}
-
-CSrvSocket::CSrvSocket(const CSrvSocket& rhs) {
-
-}
-
-// CSrvSocket& CSrvSocket::operator=(const CSrvSocket& rhs) {
-// 	
-// }
-
-CSrvSocket::~CSrvSocket() {
-	printf("~CSrvSock()\n");
-	closesocket(m_sockSrv);
-	WSACleanup();
-}
+CSrvSocket* CSrvSocket::m_instance = NULL;
+CSrvSocket::CHelper CSrvSocket::m_helper;	//  definition
 
 CSrvSocket* CSrvSocket::getInstance() {	//  静态函数
 	if (m_instance == NULL) {
@@ -30,17 +11,6 @@ CSrvSocket* CSrvSocket::getInstance() {	//  静态函数
 	}
 	return m_instance;
 }
-
-BOOL CSrvSocket::InitWSA() {
-	//  TODO : 1. socket
-			//  初始化套接字
-	WSADATA data = {};
-	if (WSAStartup(MAKEWORD(1, 1), &data)) {  //  TODO : 返回值处理
-		return FALSE;
-	}
-	return TRUE;
-}
-
 
 void CSrvSocket::releaseInstance() {
 	if (m_instance) {
@@ -56,6 +26,39 @@ CSrvSocket::CHelper::CHelper() {
 
 CSrvSocket::CHelper::~CHelper() {
 	CSrvSocket::releaseInstance();
+}
+
+CSrvSocket::CSrvSocket() : m_sockSrv(INVALID_SOCKET), m_sockCli(INVALID_SOCKET) {
+	printf("CSrvSock()\n");
+
+	if (!InitWSA()) {
+		MessageBox(NULL, TEXT("无法初始化套接字, 请检查网络环境"), TEXT("初始化错误"), MB_OK | MB_ICONERROR);
+		exit(0);
+	}
+}
+
+CSrvSocket::CSrvSocket(const CSrvSocket& rhs) : m_sockSrv(INVALID_SOCKET), m_sockCli(INVALID_SOCKET) {
+
+}
+
+// CSrvSocket& CSrvSocket::operator=(const CSrvSocket& rhs) {
+// 	
+// }
+
+CSrvSocket::~CSrvSocket() {
+	printf("~CSrvSock()\n");
+	closesocket(m_sockSrv);
+	WSACleanup();
+}
+
+BOOL CSrvSocket::InitWSA() {
+	//  TODO : 1. socket
+			//  初始化套接字
+	WSADATA data = {};
+	if (WSAStartup(MAKEWORD(1, 1), &data)) {  //  TODO : 返回值处理
+		return FALSE;
+	}
+	return TRUE;
 }
 
 BOOL CSrvSocket::initSocket() {
@@ -120,7 +123,7 @@ int CSrvSocket::dealRequest() {
 		//  TODO : 处理请求
 		idx = len;
 
-		m_pkt = CPacket((BYTE*)buf, tlen);	//  重载CPacket类的赋值运算符
+		m_pkt = CPkt((BYTE*)buf, tlen);	//  重载CPacket类的赋值运算符
 		if (tlen > 0) {
 			memmove(buf, buf + len, BUF_SIZ - tlen);
 			idx -= tlen;
@@ -129,147 +132,15 @@ int CSrvSocket::dealRequest() {
 	}
 }
 
-
 BOOL CSrvSocket::sendACK(const char* pData, int nSize) {
 	return send(m_sockCli, pData, nSize, 0);
 }
 
-BOOL CSrvSocket::sendACK(const CPacket& tpkt) {
+BOOL CSrvSocket::sendACK(const CPkt& tpkt) {
 	//  类中含有string类型成员变量
 	//  不能(const char*)&tpkt
 	//const char* p = tpkt.getData();
 	return send(m_sockCli, tpkt.getData(), tpkt.getLength() + 2 + 4, 0);
-}
-
-
-CSrvSocket* CSrvSocket::m_instance = NULL;
-
-CSrvSocket::CHelper CSrvSocket::m_helper;	//  definition
-
-
-
-
-CPacket::CPacket() : sHead(0), nLength(0), sCmd(0), sSum(0) {
-
-}
-
-CPacket::CPacket(const BYTE* pData, size_t& nSize) : sHead(0), nLength(0), sCmd(0), sSum(0) {
-	size_t i = 0;
-	for (i = 0; i < nSize; ++i) {
-		if (*((WORD*)(pData + i)) == 0xFFFE) {
-			//  找到包头
-			i += 2;
-			sHead = 0xFFFE;
-			break;
-		}
-	}
-	if (i + 4 + 2 + 2 > nSize) {
-		nSize = 0;		//  用掉了0字节
-		return;
-	}
-
-	nLength = *(DWORD*)(pData + i);
-	i += 4;
-	if (nLength + i > nSize) {	//  包数据不全
-		nSize = 0;
-		return;
-	}
-
-	sCmd = *(WORD*)(pData + i);
-	i += 2;
-	if (nLength > 4) {
-		strData.resize(nLength - 4);
-		memcpy((void*)strData.c_str(), pData + i, nLength - 4);
-		i += nLength - 4;
-	}
-
-	sSum = *(WORD*)(pData + i);
-	i += 2;
-
-	WORD tSum = 0;
-	for (size_t j = 0; j < strData.size(); ++j) {
-		tSum += (BYTE)strData[j];
-	}
-
-	if (sSum == tSum) {
-		nSize = i;
-	}
-	else {
-		nSize = 0;
-	}
-
-	calcData();
-}
-
-CPacket::CPacket(const CPacket& rhs) {
-	sHead = rhs.sHead;
-	nLength = rhs.nLength;
-	sCmd = rhs.sCmd;
-	strData = rhs.strData;
-	sSum = rhs.sSum;
-
-	calcData();
-}
-
-CPacket& CPacket::operator=(const CPacket& rhs) {
-	sHead = rhs.sHead;
-	nLength = rhs.nLength;
-	sCmd = rhs.sCmd;
-	strData = rhs.strData;
-	sSum = rhs.sSum;
-	calcData();
-	return *this;
-}
-
-CPacket::CPacket(WORD cmd, const BYTE* pData, size_t nSize) : sHead(0), nLength(0), sCmd(0), sSum(0)  {
-	sHead = 0xFFFE;
-	nLength = nSize + 2 + 2;
-	sCmd = cmd;
-	if (nSize > 0) {
-		strData.resize(nSize);
-		memcpy((void*)strData.c_str(), pData, nSize);
-	}
-	else {
-		strData.clear();
-	}
- 	
-	//strData = (const char*)pData;
-	for (size_t j = 0; j < strData.size(); ++j) {
-		sSum += (BYTE)strData[j];
-	}
-	calcData();
-}
-
-CPacket::~CPacket() {
-
-}
-
-WORD CPacket::getCmd() const {
-	return sCmd;
-}
-
-DWORD CPacket::getLength() const {
-	return nLength;
-}
-
-const char* CPacket::getData() const {
-	return strRes.c_str();
-}
-
-void CPacket::calcData() {
-	strRes.resize(nLength + 2 + 4);
-	char* pData = (char*)strRes.c_str();
-	*(WORD*)pData = sHead;
-	pData += 2;
-	*(DWORD*)pData = nLength;
-	pData += 4;
-	*(WORD*)pData = sCmd;
-	pData += 2;
-	memcpy(pData, strData.c_str(), strData.size());
-	pData += strData.size();
-	*(WORD*)pData = sSum;
-
-	//return str.c_str();		//  BUG : 返回局部变量的地址
 }
 
 BOOL CSrvSocket::getFilePath(std::string& filePath) {
@@ -278,10 +149,6 @@ BOOL CSrvSocket::getFilePath(std::string& filePath) {
 	}
 	filePath = m_pkt.getStrData();
 	return TRUE;
-}
-
-std::string CPacket::getStrData() const {
-	return strData;
 }
 
 BOOL CSrvSocket::getMouseEvent(MOUSEVENT& mouse) {

@@ -2,45 +2,9 @@
 
 #include "pch.h"
 #include "framework.h"
-
-#pragma pack(push)
-#pragma pack(1)
+#include "Pkt.h"
 
 const int BUF_SIZ = 4096;
-
-class CPacket {
-public:
-
-	CPacket();
-	CPacket(WORD, const BYTE*, size_t);
-	CPacket(const CPacket& rhs);
-	CPacket& operator=(const CPacket& rhs);
-	CPacket(const BYTE* pData, size_t& nSize);
-	~CPacket();
-
-	
-	
-	WORD getCmd()const;
-	DWORD getLength()const;
-	const char* getData() const;
-	std::string getStrData() const;
-
-private:
-
-	void calcData();
-
-private:
-
-	WORD sHead;	//  包头固定FFFE
-	DWORD nLength;	//  包长度(从控制命令开始到和校验结束)
-	WORD sCmd;
-	std::string strData;
-	std::string strRes;
-	WORD sSum;	//  和校验值
-
-};
-
-#pragma pack(pop)
 
 typedef struct _MOUSEVENT{
 
@@ -54,18 +18,18 @@ typedef struct _MOUSEVENT{
 
 }MOUSEVENT, *PMOUSEVENT;
 
+
 class CSrvSocket
 {
 public:
 	static CSrvSocket* getInstance();
+
 	BOOL initSocket();
-
 	BOOL acceptClient();
-
 	BOOL dealRequest();
 
 	BOOL sendACK(const char* pData, int nSize);
-	BOOL sendACK(const CPacket&);
+	BOOL sendACK(const CPkt&);
 	
 	BOOL getFilePath(std::string& filePath);
 	BOOL getMouseEvent(MOUSEVENT& mouse);
@@ -80,7 +44,6 @@ private:
 	BOOL InitWSA();
 
 	static CSrvSocket* m_instance;
-	
 	static void releaseInstance();
 
 	class CHelper {
@@ -90,9 +53,10 @@ private:
 	};
 
 	static CHelper m_helper;
+
 	SOCKET m_sockSrv;
 	SOCKET m_sockCli;
-	CPacket m_pkt;
+	CPkt m_pkt;
 };
 
 //  extern CSrvSocket srv;  //  main函数之前初始化, main函数之后释放资源.

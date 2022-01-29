@@ -46,7 +46,7 @@ BOOL MakeDriverInfo(){
             res += ('A' + i - 1);
         }
     }
-    CSrvSocket::getInstance()->sendACK(CPacket((WORD)1, (BYTE*)res.c_str(), res.size()));
+    CSrvSocket::getInstance()->sendACK(CPkt((WORD)1, (BYTE*)res.c_str(), res.size()));
     return TRUE;
 }
 
@@ -83,13 +83,13 @@ BOOL MakeDirectoryInfo() {
         fifo.IsDirectory = (fdata.attrib & _A_SUBDIR) ? TRUE : FALSE;
         memcpy(fifo.szFileName, fdata.name, strlen(fdata.name));
         //lst.push_back(fifo);
-        CSrvSocket::getInstance()->sendACK(CPacket(2, (BYTE*)&fifo, sizeof(fifo)));
+        CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
 
     } while (!_findnext(hFile, &fdata));
     
     FILEINFO fifo;
     fifo.HasNext = FALSE;
-    CSrvSocket::getInstance()->sendACK(CPacket(2, (BYTE*)&fifo, sizeof(fifo)));
+    CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
 
     _findclose(hFile);
 
@@ -106,7 +106,7 @@ BOOL RunFile() {
 		return FALSE;
 	}
     ShellExecuteA(NULL, NULL, filePath.c_str(), NULL, NULL, SW_SHOWNORMAL);
-    CSrvSocket::getInstance()->sendACK(CPacket(3, NULL, 0)); //  传递空, sendACK是否判断空指针的情况
+    CSrvSocket::getInstance()->sendACK(CPkt(3, NULL, 0)); //  传递空, sendACK是否判断空指针的情况
     return TRUE;
 }
 
@@ -118,22 +118,22 @@ BOOL DownloadFile() {
 	}
     FILE* pf = fopen(filePath.c_str(), "rb");
     if (pf == NULL) {
-        CSrvSocket::getInstance()->sendACK(CPacket(4, (BYTE*)&dlen, 8));
+        CSrvSocket::getInstance()->sendACK(CPkt(4, (BYTE*)&dlen, 8));
         return FALSE;
     }
 
     fseek(pf, 0, SEEK_END);
     dlen = _ftelli64(pf);
     fseek(pf, 0, SEEK_SET);
-    CSrvSocket::getInstance()->sendACK(CPacket(4, (BYTE*)&dlen, 8));    //  文件大小
+    CSrvSocket::getInstance()->sendACK(CPkt(4, (BYTE*)&dlen, 8));    //  文件大小
 
     char buf[1024] = {};
     size_t rlen = 0;
     do {
         rlen = fread(buf, 1, 1024, pf);
-        CSrvSocket::getInstance()->sendACK(CPacket(4, (BYTE*)buf, rlen));
+        CSrvSocket::getInstance()->sendACK(CPkt(4, (BYTE*)buf, rlen));
     } while (rlen >= 1024);
-    CSrvSocket::getInstance()->sendACK(CPacket(4, NULL, 0));    //  代表结尾
+    CSrvSocket::getInstance()->sendACK(CPkt(4, NULL, 0));    //  代表结尾
     fclose(pf);
     return TRUE;
 }
@@ -234,7 +234,7 @@ BOOL MouseEvent() {
         default:
             break;
         }
-        CSrvSocket::getInstance()->sendACK(CPacket(4, NULL, 0));
+        CSrvSocket::getInstance()->sendACK(CPkt(4, NULL, 0));
     
     }
     else {
@@ -273,7 +273,7 @@ BOOL SendScreen() {
         pStream->Seek(li, SEEK_SET, NULL);
         PBYTE pData = (PBYTE)GlobalLock(hMem);
         SIZE_T nSize = GlobalSize(hMem);
-        CSrvSocket::getInstance()->sendACK(CPacket(6, pData, nSize));
+        CSrvSocket::getInstance()->sendACK(CPkt(6, pData, nSize));
 		GlobalUnlock(hMem);
     }
 
@@ -331,7 +331,7 @@ BOOL LockMachine() {
         _beginthreadex(NULL, 0, threadLoackMachine, NULL, 0, &TID);
     }
 
-	CSrvSocket::getInstance()->sendACK(CPacket(7, NULL, 0));
+	CSrvSocket::getInstance()->sendACK(CPkt(7, NULL, 0));
 
     return TRUE;
 }
