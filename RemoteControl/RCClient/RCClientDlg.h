@@ -31,8 +31,15 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+
+private:
+	int SendCommandPacket(const int, const BYTE* = 0, const int = 0);
+
 public:
 	afx_msg void OnBnClickedBtnTest();
 	DWORD m_addr_srv;
 	CString m_port_srv;
+	afx_msg void OnTvnSelchangedTree1(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBnClickedBtnFileinfo();
+	CTreeCtrl m_tree;
 };

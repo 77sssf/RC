@@ -152,8 +152,8 @@ BOOL CCliSocket::sendACK(const CPkt& tpkt) {
 }
 
 
-WORD CCliSocket::getCmd() const {
-	return m_pkt.getCmd();
+CPkt CCliSocket::getPkt() const {
+	return m_pkt;
 }
 
 BOOL CCliSocket::closeSock() {

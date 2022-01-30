@@ -32,7 +32,7 @@ public:
 
 	BOOL getFilePath(std::string&);
 	BOOL getMouseEvent(MOUSEVENT&);
-	WORD getCmd() const;
+	CPkt getPkt() const;
 
 	BOOL closeSock();
 private:

@@ -64,6 +64,7 @@ void CRCClientDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_IPAddress(pDX, IDC_IPADDRESS_SRV, m_addr_srv);
 	DDX_Text(pDX, IDC_EDIT_PORT, m_port_srv);
+	DDX_Control(pDX, IDC_TREE1, m_tree);
 }
 
 BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
@@ -71,6 +72,8 @@ BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_BTN_TEST, &CRCClientDlg::OnBnClickedBtnTest)
+	ON_NOTIFY(TVN_SELCHANGED, IDC_TREE1, &CRCClientDlg::OnTvnSelchangedTree1)
+	ON_BN_CLICKED(IDC_BTN_FILEINFO, &CRCClientDlg::OnBnClickedBtnFileinfo)
 END_MESSAGE_MAP()
 
 
@@ -168,16 +171,57 @@ void CRCClientDlg::OnBnClickedBtnTest()
 {
 	// TODO: Add your control notification handler code here
 
-	UpdateData();
+	SendCommandPacket(7777);
+}
+
+
+int CRCClientDlg::SendCommandPacket(const int nCmd, const BYTE* pData, const int nLength) {
 	
+	UpdateData();
+
 	CCliSocket* pSockCli = CCliSocket::getInstance();
 	if (pSockCli->initSocket(m_addr_srv, atoi((LPCTSTR)m_port_srv)) == FALSE) {
 		//  ... 
+		return -1;
 	}
 	else {
 		AfxMessageBox(TEXT("已连接至服务器"));
-		pSockCli->sendACK(CPkt(7777, NULL, 0));
+		pSockCli->sendACK(CPkt(nCmd, pData, nLength));
 		pSockCli->dealRequest();
-		TRACE(TEXT("ack : %d \r\n"), pSockCli->getCmd());
+		TRACE(TEXT("ack : %d \r\n"), pSockCli->getPkt().getCmd());
+	}
+
+	return pSockCli->getPkt().getCmd();
+}
+
+void CRCClientDlg::OnTvnSelchangedTree1(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMTREEVIEW pNMTreeView = reinterpret_cast<LPNMTREEVIEW>(pNMHDR);
+	// TODO: Add your control notification handler code here
+	*pResult = 0;
+}
+
+
+void CRCClientDlg::OnBnClickedBtnFileinfo()
+{
+	// TODO: Add your control notification handler code here
+	CCliSocket* pSockCli = CCliSocket::getInstance();
+	int ret = SendCommandPacket(1);
+	if (ret == -1) {
+		AfxMessageBox(TEXT("OnBnClickedBtnFileinfo()"));
+		return;
+	}
+	std::string drivers = pSockCli->getPkt().getStrData();
+	std::string td;
+	m_tree.DeleteAllItems();
+	for (size_t i = 0; i < drivers.size(); ++i) {
+		if (drivers[i] == ',') {
+			td += ":";
+			m_tree.InsertItem(td.c_str(), TVI_ROOT, TVI_LAST);
+			td.clear();
+		}
+		else {
+			td += drivers[i];
+		}
 	}
 }

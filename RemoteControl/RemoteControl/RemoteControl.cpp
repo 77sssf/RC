@@ -40,10 +40,11 @@ BOOL MakeDriverInfo(){
     //  _chdrive(); //  A≈Ã : 1 B≈Ã : 2 ... Z≈Ã : 26
     for (int i = 1; i <= 26; ++i) {
         if (!_chdrive(i)) {
-            if (res.size()) {
-                res += ',';
-            }
+//             if (res.size()) {
+//                 res += ',';
+//             }
             res += ('A' + i - 1);
+            res += ",";
         }
     }
     CSrvSocket::getInstance()->sendACK(CPkt((WORD)1, (BYTE*)res.c_str(), res.size()));
