@@ -23,15 +23,7 @@ CWinApp theApp;
 CLockDialog dlg;
 unsigned int TID;
 
-typedef struct _FILEINFO{
-    _FILEINFO() : szFileName{}, IsInvalid(FALSE), IsDirectory(FALSE), HasNext(TRUE) {
-    
-    }
-    char szFileName[MAX_PATH];
-    BOOL IsInvalid; //  是否有效
-    BOOL IsDirectory;
-    BOOL HasNext;   //  是否还有后续
-}FILEINFO, *PFILEINFO;
+
 
 
 
@@ -73,7 +65,7 @@ BOOL MakeDirectoryInfo() {
     _finddata_t fdata = {};
     intptr_t hFile = 0;
     if ((hFile = _findfirst("*", &fdata)) == -1) {
-        //  没有找到任何文件
+        //  没有找到任何文件, 发送空的FILEINFO, INVALID = TRUE
         return FALSE;
     }
 
@@ -84,11 +76,14 @@ BOOL MakeDirectoryInfo() {
         fifo.IsDirectory = (fdata.attrib & _A_SUBDIR) ? TRUE : FALSE;
         memcpy(fifo.szFileName, fdata.name, strlen(fdata.name));
         //lst.push_back(fifo);
+
+        TRACE(TEXT("srv send: %s\r\n"), fifo.szFileName);
+        Sleep(50);
         CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
 
     } while (!_findnext(hFile, &fdata));
     
-    FILEINFO fifo;
+    FILEINFO fifo;  //  constructor
     fifo.HasNext = FALSE;
     CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
 
@@ -356,7 +351,11 @@ void execCmd(int nCmd) {
 		MakeDriverInfo();
 		break;
 	case 2: //  查看指定目录下的文件
-		MakeDirectoryInfo();
+        if (MakeDirectoryInfo() == FALSE) {
+			FILEINFO fifo;  //  constructor
+			fifo.HasNext = FALSE;
+			CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
+        }
 		break;
 	case 3: //  打开文件
 		RunFile();

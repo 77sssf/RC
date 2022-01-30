@@ -33,8 +33,9 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
-	int SendCommandPacket(const int, const BYTE* = 0, const int = 0);
-
+	int SendCommandPacket(const int, BOOL autoClose = TRUE, const BYTE* = 0, const int = 0);
+	CString GetPath(HTREEITEM hTreeItem);
+	void DeleteSelectChildItem(HTREEITEM hTreeSelected);
 public:
 	afx_msg void OnBnClickedBtnTest();
 	DWORD m_addr_srv;
@@ -42,4 +43,5 @@ public:
 	afx_msg void OnTvnSelchangedTree1(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBnClickedBtnFileinfo();
 	CTreeCtrl m_tree;
+	afx_msg void OnNMDblclkTree1(NMHDR* pNMHDR, LRESULT* pResult);
 };

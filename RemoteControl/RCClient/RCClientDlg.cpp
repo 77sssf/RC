@@ -74,6 +74,7 @@ BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_TEST, &CRCClientDlg::OnBnClickedBtnTest)
 	ON_NOTIFY(TVN_SELCHANGED, IDC_TREE1, &CRCClientDlg::OnTvnSelchangedTree1)
 	ON_BN_CLICKED(IDC_BTN_FILEINFO, &CRCClientDlg::OnBnClickedBtnFileinfo)
+	ON_NOTIFY(NM_DBLCLK, IDC_TREE1, &CRCClientDlg::OnNMDblclkTree1)
 END_MESSAGE_MAP()
 
 
@@ -175,7 +176,7 @@ void CRCClientDlg::OnBnClickedBtnTest()
 }
 
 
-int CRCClientDlg::SendCommandPacket(const int nCmd, const BYTE* pData, const int nLength) {
+int CRCClientDlg::SendCommandPacket(const int nCmd, BOOL autoClose, const BYTE* pData, const int nLength) {
 	
 	UpdateData();
 
@@ -188,6 +189,9 @@ int CRCClientDlg::SendCommandPacket(const int nCmd, const BYTE* pData, const int
 		AfxMessageBox(TEXT("已连接至服务器"));
 		pSockCli->sendACK(CPkt(nCmd, pData, nLength));
 		pSockCli->dealRequest();
+		if (autoClose) {
+			pSockCli->closeSock();
+		}
 		TRACE(TEXT("ack : %d \r\n"), pSockCli->getPkt().getCmd());
 	}
 
@@ -217,11 +221,93 @@ void CRCClientDlg::OnBnClickedBtnFileinfo()
 	for (size_t i = 0; i < drivers.size(); ++i) {
 		if (drivers[i] == ',') {
 			td += ":";
-			m_tree.InsertItem(td.c_str(), TVI_ROOT, TVI_LAST);
+			HTREEITEM tmp = m_tree.InsertItem(td.c_str(), TVI_ROOT, TVI_LAST);
+			m_tree.InsertItem(NULL, tmp, TVI_LAST);
 			td.clear();
 		}
 		else {
 			td += drivers[i];
 		}
 	}
+}
+
+void CRCClientDlg::DeleteSelectChildItem(HTREEITEM hTreeSelected) {
+	HTREEITEM hSub = NULL;
+	do {
+		hSub = m_tree.GetChildItem(hTreeSelected);
+		if (hSub) m_tree.DeleteItem(hSub);
+	} while (hSub);
+}
+
+
+CString CRCClientDlg::GetPath(HTREEITEM hTreeItem) {
+	CString res, tmp;
+	do {
+		tmp = m_tree.GetItemText(hTreeItem);
+		res = tmp + "\\" + res;
+		hTreeItem = m_tree.GetParentItem(hTreeItem);
+	} while (hTreeItem);
+	return res;
+}
+
+void CRCClientDlg::OnNMDblclkTree1(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	// TODO: Add your control notification handler code here
+	*pResult = 0;
+	CPoint ptMouse = {};
+	GetCursorPos(&ptMouse);	//  全局坐标
+	m_tree.ScreenToClient(&ptMouse);
+	HTREEITEM hTreeSelected = m_tree.HitTest(ptMouse, 0);
+	if (hTreeSelected == NULL) {
+		return;
+	}
+	if (m_tree.GetChildItem(hTreeSelected) == NULL) {
+		//  没有子节点说明为文件
+		return;
+	}
+	DeleteSelectChildItem(hTreeSelected);
+
+	CCliSocket* pSockCli = CCliSocket::getInstance();
+	CString strPath = GetPath(hTreeSelected);
+	int nCmd = SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)strPath, strPath.GetLength());
+	if (nCmd == -1) {
+
+	}
+
+	BOOL Ins = TRUE;
+	//PFILEINFO pInfo = (PFILEINFO)pSockCli->getPkt().getStrData().c_str();	//  指向临时对象
+	std::string t = pSockCli->getPkt().getStrData();
+	FILEINFO fInfo = {};
+	memcpy(&fInfo, t.c_str(), t.size());
+
+	//  fInfo.IsDirectory == TRUE
+	//  双击后若为文件, 服务端findfirst返回-1, 发送Invalid包至客户端
+	//  修改服务端代码, 若为Invalid, 还应标记空或者文件
+
+	while (fInfo.HasNext) {
+
+		if (fInfo.IsDirectory) {
+			if (!strcmp(fInfo.szFileName, ".") || !strcmp(fInfo.szFileName, "..")) {	//  名为.或..不插入
+				Ins = FALSE;
+			}
+		}
+
+		if (fInfo.IsInvalid == FALSE && Ins == TRUE) {
+			HTREEITEM tmp = m_tree.InsertItem(fInfo.szFileName, hTreeSelected, TVI_LAST);
+			if (tmp == NULL) {
+				//  
+			}
+			if (fInfo.IsDirectory && tmp) {
+				m_tree.InsertItem("", tmp, TVI_LAST);
+			}
+		}
+		pSockCli->dealRequest();	//  dealrequest有bug
+
+		t = pSockCli->getPkt().getStrData();
+		fInfo = {};
+		memcpy(&fInfo, t.c_str(), t.size());
+		Ins = TRUE;
+	}
+
+	pSockCli->closeSock();
 }

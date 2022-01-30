@@ -18,6 +18,15 @@ typedef struct _MOUSEVENT{
 
 }MOUSEVENT, *PMOUSEVENT;
 
+typedef struct _FILEINFO {
+	_FILEINFO() : szFileName{}, IsInvalid(TRUE), IsDirectory(FALSE), HasNext(TRUE) {
+
+	}
+	char szFileName[MAX_PATH];
+	BOOL IsInvalid; //  是否有效
+	BOOL IsDirectory;
+	BOOL HasNext;   //  是否还有后续
+}FILEINFO, * PFILEINFO;
 
 class CSrvSocket
 {

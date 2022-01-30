@@ -68,6 +68,9 @@ BOOL CSrvSocket::initSocket() {
 		return FALSE;
 	}
 
+	int opt_val = 1;
+	setsockopt(m_sockCli, IPPROTO_TCP, TCP_NODELAY, (char*)&opt_val, sizeof(opt_val));
+
 	//  服务端IP信息
 	SOCKADDR_IN addrSrv = {};
 	addrSrv.sin_family = AF_INET;
@@ -112,29 +115,30 @@ int CSrvSocket::dealRequest() {
 	//  命令
 	//  数据
 	//  校验
-	int idx = 0;
+	size_t idx = 0;
 	while (true) {
-
-		int len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
-
-		size_t tlen = len;
-
+		size_t len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
 		if (len <= 0) {
-			delete[] buf;
+			//  0 : 连接断开
+			//  1 : SOCKET_ERROR
 			return FALSE;
 		}
 
-		//  TODO : 处理请求
-		idx = len;
+		idx += len;
+		len = idx;
 
-		m_pkt = CPkt((BYTE*)buf, tlen);	//  重载CPacket类的赋值运算符
-		if (tlen > 0) {
-			memmove(buf, buf + len, BUF_SIZ - tlen);
-			idx -= tlen;
+		m_pkt = CPkt((BYTE*)buf, len);
+
+		TRACE(TEXT("srv recv: %s\r\n"), ((PFILEINFO)m_pkt.getStrData().c_str())->szFileName);
+
+		if (len > 0) {
+			memmove(buf, buf + len, BUF_SIZ - len);
+			idx -= len;
 			delete[] buf;
 			return m_pkt.getCmd();
 		}
 	}
+	return FALSE;
 }
 
 BOOL CSrvSocket::sendACK(const char* pData, int nSize) {
@@ -149,9 +153,9 @@ BOOL CSrvSocket::sendACK(const CPkt& tpkt) {
 }
 
 BOOL CSrvSocket::getFilePath(std::string& filePath) {
-	if (m_pkt.getCmd() <= 4 && m_pkt.getCmd() >= 2) {
-		return FALSE;
-	}
+// 	if (m_pkt.getCmd() > 4 && m_pkt.getCmd() < 2) {
+// 		return FALSE;
+// 	}
 	filePath = m_pkt.getStrData();
 	return TRUE;
 }
