@@ -73,7 +73,7 @@ BOOL CCliSocket::InitWSA() {
 	return TRUE;
 }
 
-BOOL CCliSocket::initSocket(const std::string& IP_ADDR) {
+BOOL CCliSocket::initSocket(const int nIP, const int nPort) {
 	
 	if (m_sockCli != INVALID_SOCKET) {
 		closeSock();
@@ -88,8 +88,9 @@ BOOL CCliSocket::initSocket(const std::string& IP_ADDR) {
 	//  服务端IP信息
 	SOCKADDR_IN addrSrv = {};
 	addrSrv.sin_family = AF_INET;
-	addrSrv.sin_addr.S_un.S_addr = inet_addr(IP_ADDR.c_str());
-	addrSrv.sin_port = htons(7070);
+	addrSrv.sin_addr.S_un.S_addr = htonl(nIP);
+
+	addrSrv.sin_port = htons(nPort);
 
 	if (addrSrv.sin_addr.S_un.S_addr == INADDR_NONE) {
 		AfxMessageBox(TEXT("服务器IP地址不存在"));

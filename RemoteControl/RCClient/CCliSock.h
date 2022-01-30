@@ -23,7 +23,7 @@ class CCliSocket
 {
 public:
 	static CCliSocket* getInstance();
-	BOOL initSocket(const std::string&);
+	BOOL initSocket(const int, const int);
 
 	BOOL dealRequest();
 

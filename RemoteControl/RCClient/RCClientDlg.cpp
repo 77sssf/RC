@@ -53,6 +53,8 @@ END_MESSAGE_MAP()
 
 CRCClientDlg::CRCClientDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_RCCLIENT_DIALOG, pParent)
+	, m_addr_srv(0)
+	, m_port_srv(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -60,6 +62,8 @@ CRCClientDlg::CRCClientDlg(CWnd* pParent /*=nullptr*/)
 void CRCClientDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_IPAddress(pDX, IDC_IPADDRESS_SRV, m_addr_srv);
+	DDX_Text(pDX, IDC_EDIT_PORT, m_port_srv);
 }
 
 BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
@@ -102,7 +106,10 @@ BOOL CRCClientDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
-
+	UpdateData();
+	m_port_srv = TEXT("7070");
+	m_addr_srv = 0x7F000001;
+	UpdateData(FALSE);
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -160,8 +167,11 @@ HCURSOR CRCClientDlg::OnQueryDragIcon()
 void CRCClientDlg::OnBnClickedBtnTest()
 {
 	// TODO: Add your control notification handler code here
+
+	UpdateData();
+	
 	CCliSocket* pSockCli = CCliSocket::getInstance();
-	if (pSockCli->initSocket("127.0.0.1") == FALSE) {
+	if (pSockCli->initSocket(m_addr_srv, atoi((LPCTSTR)m_port_srv)) == FALSE) {
 		//  ... 
 	}
 	else {
