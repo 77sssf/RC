@@ -78,7 +78,7 @@ BOOL MakeDirectoryInfo() {
         //lst.push_back(fifo);
 
         TRACE(TEXT("srv send: %s\r\n"), fifo.szFileName);
-        Sleep(50);
+        //Sleep(50);
         CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
 
     } while (!_findnext(hFile, &fdata));

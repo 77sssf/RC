@@ -114,17 +114,17 @@ int CCliSocket::dealRequest() {
 	//char buf[BUF_SIZ] = {};		//  local variable
 
 	char* buf = m_buf.data();
-	memset(buf, 0, BUF_SIZ);
+	//memset(buf, 0, BUF_SIZ);
 
 	//  包头 FFFE
 	//  长度
 	//  命令
 	//  数据
 	//  校验
-	size_t idx = 0;
+	static size_t idx = 0;
 	while (true) {
 		size_t len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
-		if (len <= 0) {
+		if (len <= 0 && idx <= 0) {
 			//  0 : 连接断开
 			//  1 : SOCKET_ERROR
 			return FALSE;
