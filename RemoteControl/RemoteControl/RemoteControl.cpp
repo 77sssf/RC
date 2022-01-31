@@ -77,7 +77,7 @@ BOOL MakeDirectoryInfo() {
         memcpy(fifo.szFileName, fdata.name, strlen(fdata.name));
         //lst.push_back(fifo);
 
-        TRACE(TEXT("srv send: %s\r\n"), fifo.szFileName);
+        //TRACE(TEXT("srv send file: %s\r\n"), fifo.szFileName);
         //Sleep(50);
         CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
 
@@ -121,8 +121,9 @@ BOOL DownloadFile() {
     fseek(pf, 0, SEEK_END);
     dlen = _ftelli64(pf);
     fseek(pf, 0, SEEK_SET);
-    CSrvSocket::getInstance()->sendACK(CPkt(4, (BYTE*)&dlen, 8));    //  文件大小
 
+    CSrvSocket::getInstance()->sendACK(CPkt(4, (BYTE*)&dlen, 8));    //  文件大小
+	
     char buf[1024] = {};
     size_t rlen = 0;
     do {

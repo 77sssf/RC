@@ -106,6 +106,9 @@ BOOL CCliSocket::initSocket(const int nIP, const int nPort) {
 		return FALSE;
 	}
 
+	m_buf.clear();
+	m_buf.resize(BUF_SIZ);
+
 	return TRUE;
 }
 
@@ -134,7 +137,7 @@ int CCliSocket::dealRequest() {
 		len = idx;
 		m_pkt = CPkt((BYTE*)buf, len);
 
-		TRACE(TEXT("cli recv: %s\r\n"), ((PFILEINFO)m_pkt.getStrData().c_str())->szFileName);
+		//TRACE(TEXT("cli recv: %d, %s\r\n"), m_pkt.getCmd(), ((PFILEINFO)m_pkt.getStrData().c_str())->szFileName);
 
 		if (len > 0) {
 			memmove(buf, buf + len, BUF_SIZ - len);

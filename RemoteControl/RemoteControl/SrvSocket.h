@@ -3,6 +3,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "Pkt.h"
+#include <vector>
 
 const int BUF_SIZ = 4096;
 
@@ -67,6 +68,7 @@ private:
 	SOCKET m_sockSrv;
 	SOCKET m_sockCli;
 	CPkt m_pkt;
+	std::vector<char> m_buf;
 };
 
 //  extern CSrvSocket srv;  //  main函数之前初始化, main函数之后释放资源.

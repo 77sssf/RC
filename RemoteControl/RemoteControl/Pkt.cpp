@@ -80,6 +80,7 @@ CPkt::CPkt(WORD cmd, const BYTE* pData, size_t nSize) : sHead(0), nLength(0), sC
 	for (size_t j = 0; j < strData.size(); ++j) {
 		sSum += (BYTE)strData[j];
 	}
+
 	calcData();
 }
 

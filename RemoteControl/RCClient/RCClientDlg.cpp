@@ -78,6 +78,9 @@ BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
 	ON_NOTIFY(NM_DBLCLK, IDC_TREE1, &CRCClientDlg::OnNMDblclkTree1)
 	ON_NOTIFY(NM_CLICK, IDC_TREE1, &CRCClientDlg::OnNMClickTree1)
 	ON_NOTIFY(NM_RCLICK, IDC_LIST1, &CRCClientDlg::OnNMRClickList1)
+	ON_COMMAND(ID_DOWNLOAD, &CRCClientDlg::OnDownload)
+	ON_COMMAND(ID_DELETE, &CRCClientDlg::OnDelete)
+	ON_COMMAND(ID_OPEN, &CRCClientDlg::OnOpen)
 END_MESSAGE_MAP()
 
 
@@ -189,13 +192,12 @@ int CRCClientDlg::SendCommandPacket(const int nCmd, BOOL autoClose, const BYTE* 
 		return -1;
 	}
 	else {
-		AfxMessageBox(TEXT("已连接至服务器"));
+		TRACE(TEXT("Connected to server\r\n"));
 		pSockCli->sendACK(CPkt(nCmd, pData, nLength));
 		pSockCli->dealRequest();
 		if (autoClose) {
 			pSockCli->closeSock();
 		}
-		TRACE(TEXT("ack : %d \r\n"), pSockCli->getPkt().getCmd());
 	}
 
 	return pSockCli->getPkt().getCmd();
@@ -312,7 +314,7 @@ void CRCClientDlg::LoadFileInfo() {
 				}
 			}
 			else {
-				m_list.InsertItem(0, fInfo.szFileName);
+				m_list.InsertItem(0, fInfo.szFileName);	// 0代表第一列
 			}
 		}
 
@@ -355,5 +357,92 @@ void CRCClientDlg::OnNMRClickList1(NMHDR* pNMHDR, LRESULT* pResult)
 	CMenu* pPopup = menu.GetSubMenu(0);
 	if (pPopup) {
 		pPopup->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, ptMouse.x, ptMouse.y, this);
+	}
+}
+
+
+void CRCClientDlg::OnDownload()
+{
+	// TODO: Add your command handler code here
+	AfxMessageBox(TEXT("Download"));
+	int nListSelected = m_list.GetSelectionMark();
+	CString fileName = m_list.GetItemText(nListSelected, 0);
+
+	// dialog选择路径
+	CFileDialog dlg(FALSE, "*", fileName, OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY, NULL, this);
+	if (dlg.DoModal() != IDOK) {
+		return;
+	}
+
+	FILE* pf = fopen(dlg.GetPathName(), "wb+");
+	if (pf == NULL) {
+		AfxMessageBox(TEXT("本地打开文件失败"));
+	}
+
+	HTREEITEM hSelected = m_tree.GetSelectedItem();
+	CString filePath = GetPath(hSelected);
+	filePath = filePath + fileName;
+	TRACE(TEXT("Download file path : %s\r\n"), filePath);
+	int ret = SendCommandPacket(4, FALSE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	if (ret < 0) {
+		AfxMessageBox(TEXT("下载命令失败\r\n"));
+		TRACE(TEXT("下载命令失败, return = %d\r\n"), ret);
+		return;
+	}
+	//  第一个包为长度
+	//  最后一个包为空代表结束
+	CCliSocket* pClient = CCliSocket::getInstance();
+	long long nlength = *((long long*)pClient->getPkt().getStrData().c_str());
+	if (nlength == 0) {
+		//  文件打开失败或长度为0字节
+		AfxMessageBox(TEXT("文件打开失败或长度为0字节"));
+		return;
+	}
+	//  开始接收
+	long long cnt = 0;
+	
+	while (cnt < nlength) {
+		ret = pClient->dealRequest();
+		if (ret == FALSE) {
+			AfxMessageBox(TEXT("断开连接或包已全部解析完毕"));
+			TRACE(TEXT("文件传输失败, return = %d\r\n"), ret);
+			return;
+		}
+		fwrite(pClient->getPkt().getStrData().c_str(), 1, pClient->getPkt().getStrData().size(), pf);
+		cnt += pClient->getPkt().getStrData().size();
+		if (pClient->getPkt().getStrData().size() == 0) {
+			
+		}
+	}
+
+	pClient->closeSock();
+	fclose(pf);
+}
+
+
+void CRCClientDlg::OnDelete()
+{
+	// TODO: Add your command handler code here
+	AfxMessageBox(TEXT("Delete"));
+
+}
+
+
+void CRCClientDlg::OnOpen()
+{
+	// TODO: Add your command handler code here
+	AfxMessageBox(TEXT("Open"));
+	HTREEITEM hTree = m_tree.GetSelectedItem();
+	CString filePath = GetPath(hTree);
+	int nListSelected = m_list.GetSelectionMark();
+	CString fileName = m_list.GetItemText(nListSelected, 0);
+
+	filePath = filePath + fileName;
+
+	int ret = SendCommandPacket(3, TRUE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+
+	if (ret < 0) {
+		AfxMessageBox(TEXT("打开文件命令失败"));
+		return;
 	}
 }

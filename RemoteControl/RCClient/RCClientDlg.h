@@ -48,4 +48,7 @@ public:
 	afx_msg void OnNMClickTree1(NMHDR* pNMHDR, LRESULT* pResult);
 	CListCtrl m_list;
 	afx_msg void OnNMRClickList1(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnDownload();
+	afx_msg void OnDelete();
+	afx_msg void OnOpen();
 };
