@@ -36,6 +36,7 @@ private:
 	int SendCommandPacket(const int, BOOL autoClose = TRUE, const BYTE* = 0, const int = 0);
 	CString GetPath(HTREEITEM hTreeItem);
 	void DeleteSelectChildItem(HTREEITEM hTreeSelected);
+	void LoadFileInfo();
 public:
 	afx_msg void OnBnClickedBtnTest();
 	DWORD m_addr_srv;
@@ -44,4 +45,7 @@ public:
 	afx_msg void OnBnClickedBtnFileinfo();
 	CTreeCtrl m_tree;
 	afx_msg void OnNMDblclkTree1(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnNMClickTree1(NMHDR* pNMHDR, LRESULT* pResult);
+	CListCtrl m_list;
+	afx_msg void OnNMRClickList1(NMHDR* pNMHDR, LRESULT* pResult);
 };

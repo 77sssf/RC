@@ -65,6 +65,7 @@ void CRCClientDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_IPAddress(pDX, IDC_IPADDRESS_SRV, m_addr_srv);
 	DDX_Text(pDX, IDC_EDIT_PORT, m_port_srv);
 	DDX_Control(pDX, IDC_TREE1, m_tree);
+	DDX_Control(pDX, IDC_LIST1, m_list);
 }
 
 BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
@@ -75,6 +76,8 @@ BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
 	ON_NOTIFY(TVN_SELCHANGED, IDC_TREE1, &CRCClientDlg::OnTvnSelchangedTree1)
 	ON_BN_CLICKED(IDC_BTN_FILEINFO, &CRCClientDlg::OnBnClickedBtnFileinfo)
 	ON_NOTIFY(NM_DBLCLK, IDC_TREE1, &CRCClientDlg::OnNMDblclkTree1)
+	ON_NOTIFY(NM_CLICK, IDC_TREE1, &CRCClientDlg::OnNMClickTree1)
+	ON_NOTIFY(NM_RCLICK, IDC_LIST1, &CRCClientDlg::OnNMRClickList1)
 END_MESSAGE_MAP()
 
 
@@ -254,6 +257,10 @@ void CRCClientDlg::OnNMDblclkTree1(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	// TODO: Add your control notification handler code here
 	*pResult = 0;
+	LoadFileInfo();
+}
+
+void CRCClientDlg::LoadFileInfo() {
 	CPoint ptMouse = {};
 	GetCursorPos(&ptMouse);	//  全局坐标
 	m_tree.ScreenToClient(&ptMouse);
@@ -265,7 +272,9 @@ void CRCClientDlg::OnNMDblclkTree1(NMHDR* pNMHDR, LRESULT* pResult)
 		//  没有子节点说明为文件
 		return;
 	}
+
 	DeleteSelectChildItem(hTreeSelected);
+	m_list.DeleteAllItems();
 
 	CCliSocket* pSockCli = CCliSocket::getInstance();
 	CString strPath = GetPath(hTreeSelected);
@@ -274,7 +283,7 @@ void CRCClientDlg::OnNMDblclkTree1(NMHDR* pNMHDR, LRESULT* pResult)
 
 	}
 
-	BOOL Ins = TRUE;
+	BOOL Insert = TRUE;
 	//PFILEINFO pInfo = (PFILEINFO)pSockCli->getPkt().getStrData().c_str();	//  指向临时对象
 	std::string t = pSockCli->getPkt().getStrData();
 	FILEINFO fInfo = {};
@@ -288,26 +297,63 @@ void CRCClientDlg::OnNMDblclkTree1(NMHDR* pNMHDR, LRESULT* pResult)
 
 		if (fInfo.IsDirectory) {
 			if (!strcmp(fInfo.szFileName, ".") || !strcmp(fInfo.szFileName, "..")) {	//  名为.或..不插入
-				Ins = FALSE;
+				Insert = FALSE;
 			}
 		}
 
-		if (fInfo.IsInvalid == FALSE && Ins == TRUE) {
-			HTREEITEM tmp = m_tree.InsertItem(fInfo.szFileName, hTreeSelected, TVI_LAST);
-			if (tmp == NULL) {
-				//  
+		if (fInfo.IsInvalid == FALSE && Insert == TRUE) {
+			if (fInfo.IsDirectory) {
+				HTREEITEM tmp = m_tree.InsertItem(fInfo.szFileName, hTreeSelected, TVI_LAST);
+				if (tmp == NULL) {
+					//  
+				}
+				if (fInfo.IsDirectory && tmp) {
+					m_tree.InsertItem("", tmp, TVI_LAST);
+				}
 			}
-			if (fInfo.IsDirectory && tmp) {
-				m_tree.InsertItem("", tmp, TVI_LAST);
+			else {
+				m_list.InsertItem(0, fInfo.szFileName);
 			}
 		}
-		pSockCli->dealRequest();	//  dealrequest有bug
+
+		pSockCli->dealRequest();
 
 		t = pSockCli->getPkt().getStrData();
 		fInfo = {};
 		memcpy(&fInfo, t.c_str(), t.size());
-		Ins = TRUE;
+		Insert = TRUE;
 	}
 
 	pSockCli->closeSock();
+}
+
+
+void CRCClientDlg::OnNMClickTree1(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	// TODO: Add your control notification handler code here
+	*pResult = 0;
+	LoadFileInfo();
+}
+
+
+void CRCClientDlg::OnNMRClickList1(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	// TODO: Add your control notification handler code here
+	*pResult = 0;
+	CPoint ptMouse = {}, ptList{};
+	GetCursorPos(&ptMouse);
+	ptList = ptMouse;
+	m_list.ScreenToClient(&ptList);
+	int listSelected = m_list.HitTest(ptList);
+	if (listSelected < 0) {
+		return;
+	}
+
+	CMenu menu;
+	menu.LoadMenuA(IDR_MENU_RCLICK);
+	CMenu* pPopup = menu.GetSubMenu(0);
+	if (pPopup) {
+		pPopup->TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, ptMouse.x, ptMouse.y, this);
+	}
 }
