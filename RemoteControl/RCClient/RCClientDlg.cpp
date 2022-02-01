@@ -600,10 +600,11 @@ void CRCClientDlg::ThreadWatchData() {
 	ULONGLONG tick = GetTickCount64();
 
 	while (TRUE) {
-		if (GetTickCount64() - tick < 50) {
-			Sleep((DWORD)(GetTickCount64() - tick));
-			tick = GetTickCount64();
+		
+		while (m_IsFull) {
+			Sleep(35);
 		}
+
 		int ret = SendMessage(WM_SEND_PACKET, (6 << 1 | 1));
 		//
 		if (ret < 0) {
@@ -630,7 +631,8 @@ void CRCClientDlg::ThreadWatchData() {
 					pStream->Seek(bg, STREAM_SEEK_SET, NULL);
 					m_image.Load(pStream);
 					m_IsFull = TRUE;
-					
+					pStream->Release();
+					GlobalFree(hMem);
 				}
 			}
 		}
