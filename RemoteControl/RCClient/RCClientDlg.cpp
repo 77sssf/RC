@@ -192,7 +192,7 @@ int CRCClientDlg::SendCommandPacket(const int nCmd, BOOL autoClose, const BYTE* 
 		return -1;
 	}
 	else {
-		TRACE(TEXT("Connected to server\r\n"));
+		TRACE(TEXT("Connected to server, CmdCode : %d\r\n"), nCmd);
 		pSockCli->sendACK(CPkt(nCmd, pData, nLength));
 		pSockCli->dealRequest();
 		if (autoClose) {
@@ -329,6 +329,65 @@ void CRCClientDlg::LoadFileInfo() {
 	pSockCli->closeSock();
 }
 
+void CRCClientDlg::LoadFileCurrent() {
+	HTREEITEM hTree = m_tree.GetSelectedItem();
+	CString filePath = GetPath(hTree);
+
+	DeleteSelectChildItem(hTree);
+	m_list.DeleteAllItems();
+
+	CCliSocket* pSockCli = CCliSocket::getInstance();
+
+	int nCmd = SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	if (nCmd == -1) {
+
+	}
+
+	BOOL Insert = TRUE;
+	//PFILEINFO pInfo = (PFILEINFO)pSockCli->getPkt().getStrData().c_str();	//  指向临时对象
+	std::string t = pSockCli->getPkt().getStrData();
+	FILEINFO fInfo = {};
+	memcpy(&fInfo, t.c_str(), t.size());
+
+	//  fInfo.IsDirectory == TRUE
+	//  双击后若为文件, 服务端findfirst返回-1, 发送Invalid包至客户端
+	//  修改服务端代码, 若为Invalid, 还应标记空或者文件
+
+	while (fInfo.HasNext) {
+
+		if (fInfo.IsDirectory) {
+			if (!strcmp(fInfo.szFileName, ".") || !strcmp(fInfo.szFileName, "..")) {	//  名为.或..不插入
+				Insert = FALSE;
+			}
+		}
+
+		if (fInfo.IsInvalid == FALSE && Insert == TRUE) {
+			if (fInfo.IsDirectory) {
+				HTREEITEM tmp = m_tree.InsertItem(fInfo.szFileName, hTree, TVI_LAST);
+				if (tmp == NULL) {
+					//  
+				}
+				if (fInfo.IsDirectory && tmp) {
+					m_tree.InsertItem("", tmp, TVI_LAST);
+				}
+			}
+			else {
+				m_list.InsertItem(0, fInfo.szFileName);	// 0代表第一列
+			}
+		}
+
+		pSockCli->dealRequest();
+
+		t = pSockCli->getPkt().getStrData();
+		fInfo = {};
+		memcpy(&fInfo, t.c_str(), t.size());
+		Insert = TRUE;
+	}
+
+	pSockCli->closeSock();
+
+}
+
 
 void CRCClientDlg::OnNMClickTree1(NMHDR* pNMHDR, LRESULT* pResult)
 {
@@ -423,15 +482,27 @@ void CRCClientDlg::OnDownload()
 void CRCClientDlg::OnDelete()
 {
 	// TODO: Add your command handler code here
-	AfxMessageBox(TEXT("Delete"));
+	HTREEITEM hTree = m_tree.GetSelectedItem();
+	CString filePath = GetPath(hTree);
+	int nListSelected = m_list.GetSelectionMark();
+	CString fileName = m_list.GetItemText(nListSelected, 0);
 
+	filePath = filePath + fileName;
+
+	int ret = SendCommandPacket(9, TRUE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+
+	if (ret < 0) {
+		AfxMessageBox(TEXT("删除文件命令失败"));
+		return;
+	}
+
+	LoadFileCurrent();
 }
 
 
 void CRCClientDlg::OnOpen()
 {
 	// TODO: Add your command handler code here
-	AfxMessageBox(TEXT("Open"));
 	HTREEITEM hTree = m_tree.GetSelectedItem();
 	CString filePath = GetPath(hTree);
 	int nListSelected = m_list.GetSelectionMark();

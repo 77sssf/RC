@@ -37,6 +37,7 @@ private:
 	CString GetPath(HTREEITEM hTreeItem);
 	void DeleteSelectChildItem(HTREEITEM hTreeSelected);
 	void LoadFileInfo();
+	void LoadFileCurrent();
 public:
 	afx_msg void OnBnClickedBtnTest();
 	DWORD m_addr_srv;

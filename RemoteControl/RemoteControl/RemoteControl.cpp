@@ -135,6 +135,13 @@ BOOL DownloadFile() {
     return TRUE;
 }
 
+BOOL DeleteLocalFile() {
+    std::string filePath;
+    CSrvSocket::getInstance()->getFilePath(filePath);
+    int ret = DeleteFile(filePath.c_str());
+    CSrvSocket::getInstance()->sendACK(CPkt(9, NULL, 0));
+    return TRUE;
+}
 
 BOOL MouseEvent() {
     
@@ -269,6 +276,9 @@ BOOL SendScreen() {
         LARGE_INTEGER li = {};
         pStream->Seek(li, SEEK_SET, NULL);
         PBYTE pData = (PBYTE)GlobalLock(hMem);
+        if (pData == NULL) {
+            //
+        }
         SIZE_T nSize = GlobalSize(hMem);
         CSrvSocket::getInstance()->sendACK(CPkt(6, pData, nSize));
 		GlobalUnlock(hMem);
@@ -376,6 +386,9 @@ void execCmd(int nCmd) {
 	case 8: //  ½âËø
 		UnLockMachine();
 		break;
+    case 9:
+        DeleteLocalFile();
+        break;
     case 7777:
         connectTest();
         break;
