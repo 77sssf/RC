@@ -6,6 +6,7 @@
 
 #include "CCliSock.h"
 #include "StatusDlg.h"
+#include "MonitorDlg.h"
 
 #define WM_SEND_PACKET (WM_USER + 1)
 
@@ -50,6 +51,9 @@ private:
 	static void ThreadEntryForWatchData(void* args);
 	void ThreadWatchData();
 
+public:
+	BOOL getIsFull() const ;
+	CImage& getImage();
 
 private:
 	CStatusDlg m_statudDlg;
@@ -70,4 +74,5 @@ public:
 	afx_msg void OnDownload();
 	afx_msg void OnDelete();
 	afx_msg void OnOpen();
+	afx_msg void OnBnClickedBtnMonitor();
 };

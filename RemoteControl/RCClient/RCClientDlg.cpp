@@ -83,6 +83,7 @@ BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
 	ON_COMMAND(ID_DELETE, &CRCClientDlg::OnDelete)
 	ON_COMMAND(ID_OPEN, &CRCClientDlg::OnOpen)
 	ON_MESSAGE(WM_SEND_PACKET, &CRCClientDlg::OnSendPacket)
+	ON_BN_CLICKED(IDC_BTN_MONITOR, &CRCClientDlg::OnBnClickedBtnMonitor)
 END_MESSAGE_MAP()
 
 
@@ -588,14 +589,45 @@ void CRCClientDlg::ThreadWatchData() {
 			ret = pClient->dealRequest();
 			if (ret == 6 && !m_IsFull) {
 				//  TODO : 存入CImage
-				BYTE* pData = (BYTE*)pClient->getPkt().getStrData().c_str();
-
-
-
-				m_IsFull = TRUE;
+				std::string data = pClient->getPkt().getStrData();	///////////////
+				
+				HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
+				if (hMem == NULL) {
+					TRACE(TEXT("内存不足"));
+					Sleep(500);
+					continue;
+				}
+				IStream* pStream = NULL;
+				HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
+				if (hRet == S_OK) {
+					ULONG length = 0;
+					pStream->Write(data.c_str(), data.size(), &length);
+					LARGE_INTEGER bg = {};
+					pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+					m_image.Load(pStream);
+					m_IsFull = TRUE;
+				}
 			}
 		}
 
 	}
 
+}
+
+void CRCClientDlg::OnBnClickedBtnMonitor()
+{
+	// TODO: Add your control notification handler code here
+	_beginthread(CRCClientDlg::ThreadEntryForWatchData, 0, this);
+	//GetDlgItem(IDC_BTN_MONITOR)->EnableWindow(FALSE);
+	//  启动Dlg显示截图
+	CMonitorDlg dlg(this);
+	dlg.DoModal();
+}
+
+BOOL CRCClientDlg::getIsFull() const {
+	return m_IsFull;
+}
+
+CImage& CRCClientDlg::getImage() {
+	return m_image;
 }
