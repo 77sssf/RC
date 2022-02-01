@@ -280,7 +280,7 @@ BOOL SendScreen() {
             //
         }
         SIZE_T nSize = GlobalSize(hMem);
-        CSrvSocket::getInstance()->sendACK(CPkt(6, pData, nSize));
+        CSrvSocket::getInstance()->sendACK(CPkt(6, pData, nSize));  // 如果pData过大接收端会出问题, 因为客户端recv一次接收4K
 		GlobalUnlock(hMem);
     }
 

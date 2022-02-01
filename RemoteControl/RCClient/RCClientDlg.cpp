@@ -55,6 +55,7 @@ CRCClientDlg::CRCClientDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_RCCLIENT_DIALOG, pParent)
 	, m_addr_srv(0)
 	, m_port_srv(_T(""))
+	, m_IsFull(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -558,4 +559,43 @@ afx_msg LRESULT CRCClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) {
 	UINT CmdAndAuto = wParam;
 	int ret = SendCommandPacket(CmdAndAuto >> 1, CmdAndAuto & 0x1, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
 	return ret;
+}
+
+
+void CRCClientDlg::ThreadEntryForWatchData(void* args) {
+	CRCClientDlg* pDlg = (CRCClientDlg*)args;
+
+	pDlg->ThreadWatchData();
+
+	_endthread();
+}
+
+void CRCClientDlg::ThreadWatchData() {
+	
+	CCliSocket* pClient = NULL;
+
+	do {
+		pClient = CCliSocket::getInstance();
+	} while (pClient == NULL);
+
+	while (TRUE) {
+		int ret = pClient->sendACK(CPkt(6, NULL, 0));
+		
+		if (ret == FALSE) {
+			Sleep(500);
+		}
+		else {
+			ret = pClient->dealRequest();
+			if (ret == 6 && !m_IsFull) {
+				//  TODO : ´æÈëCImage
+				BYTE* pData = (BYTE*)pClient->getPkt().getStrData().c_str();
+
+
+
+				m_IsFull = TRUE;
+			}
+		}
+
+	}
+
 }

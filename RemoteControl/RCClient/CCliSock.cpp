@@ -156,7 +156,7 @@ BOOL CCliSocket::sendACK(const CPkt& tpkt) {
 	//  类中含有string类型成员变量
 	//  不能(const char*)&tpkt
 	//const char* p = tpkt.getData();
-	return send(m_sockCli, tpkt.getData(), tpkt.getLength() + 2 + 4, 0);
+	return send(m_sockCli, tpkt.getData(), tpkt.getLength() + 2 + 4, 0) > 0 ? TRUE : FALSE;
 }
 
 

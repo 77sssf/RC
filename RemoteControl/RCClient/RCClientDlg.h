@@ -44,6 +44,18 @@ private:
 	void LoadFileCurrent();
 	static void ThreadEntryForDownloadFile(void* arg);
 	void ThreadDownloadFile();
+	
+	afx_msg LRESULT OnSendPacket(WPARAM wParam, LPARAM lParam);
+	
+	static void ThreadEntryForWatchData(void* args);
+	void ThreadWatchData();
+
+
+private:
+	CStatusDlg m_statudDlg;
+	BOOL m_IsFull;
+	CImage m_image;
+
 public:
 	afx_msg void OnBnClickedBtnTest();
 	DWORD m_addr_srv;
@@ -58,7 +70,4 @@ public:
 	afx_msg void OnDownload();
 	afx_msg void OnDelete();
 	afx_msg void OnOpen();
-
-	CStatusDlg m_statudDlg;
-	afx_msg LRESULT OnSendPacket(WPARAM wParam, LPARAM lParam);
 };
