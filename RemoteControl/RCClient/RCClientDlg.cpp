@@ -7,7 +7,7 @@
 #include "RCClient.h"
 #include "RCClientDlg.h"
 #include "afxdialogex.h"
-#include "CCliSock.h"
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -81,6 +81,7 @@ BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
 	ON_COMMAND(ID_DOWNLOAD, &CRCClientDlg::OnDownload)
 	ON_COMMAND(ID_DELETE, &CRCClientDlg::OnDelete)
 	ON_COMMAND(ID_OPEN, &CRCClientDlg::OnOpen)
+	ON_MESSAGE(WM_SEND_PACKET, &CRCClientDlg::OnSendPacket)
 END_MESSAGE_MAP()
 
 
@@ -120,6 +121,10 @@ BOOL CRCClientDlg::OnInitDialog()
 	m_port_srv = TEXT("7070");
 	m_addr_srv = 0x7F000001;
 	UpdateData(FALSE);
+
+	m_statudDlg.Create(IDD_DLG_STATUS, this);
+	m_statudDlg.ShowWindow(SW_HIDE);
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -419,11 +424,18 @@ void CRCClientDlg::OnNMRClickList1(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
+void CRCClientDlg::ThreadEntryForDownloadFile(void* arg) {	//  static
+	
 
-void CRCClientDlg::OnDownload()
-{
-	// TODO: Add your command handler code here
-	AfxMessageBox(TEXT("Download"));
+	CRCClientDlg* pDlg = (CRCClientDlg*)arg;
+
+	pDlg->ThreadDownloadFile();
+
+	_endthread();
+}
+
+void CRCClientDlg::ThreadDownloadFile() {
+
 	int nListSelected = m_list.GetSelectionMark();
 	CString fileName = m_list.GetItemText(nListSelected, 0);
 
@@ -436,13 +448,15 @@ void CRCClientDlg::OnDownload()
 	FILE* pf = fopen(dlg.GetPathName(), "wb+");
 	if (pf == NULL) {
 		AfxMessageBox(TEXT("本地打开文件失败"));
+		return;
 	}
 
 	HTREEITEM hSelected = m_tree.GetSelectedItem();
 	CString filePath = GetPath(hSelected);
 	filePath = filePath + fileName;
 	TRACE(TEXT("Download file path : %s\r\n"), filePath);
-	int ret = SendCommandPacket(4, FALSE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	//int ret = SendCommandPacket(4, FALSE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	int ret = SendMessage(WM_SEND_PACKET, (4 << 1 | 0), (LPARAM)(LPCTSTR)filePath);
 	if (ret < 0) {
 		AfxMessageBox(TEXT("下载命令失败\r\n"));
 		TRACE(TEXT("下载命令失败, return = %d\r\n"), ret);
@@ -458,7 +472,15 @@ void CRCClientDlg::OnDownload()
 		return;
 	}
 	//  开始接收
+
+	m_statudDlg.m_info.SetWindowText(TEXT("文件下载中"));
+	m_statudDlg.SetActiveWindow();
+	m_statudDlg.CenterWindow(this);
+	m_statudDlg.ShowWindow(SW_SHOW);	//  小文件进度界面会一闪而过
+
 	long long cnt = 0;
+
+	// -----------------添加线程函数---------------------------------
 	
 	while (cnt < nlength) {
 		ret = pClient->dealRequest();
@@ -470,12 +492,24 @@ void CRCClientDlg::OnDownload()
 		fwrite(pClient->getPkt().getStrData().c_str(), 1, pClient->getPkt().getStrData().size(), pf);
 		cnt += pClient->getPkt().getStrData().size();
 		if (pClient->getPkt().getStrData().size() == 0) {
-			
+			// ...
 		}
 	}
+	// -------------------------------------------------------------
 
 	pClient->closeSock();
 	fclose(pf);
+	m_statudDlg.ShowWindow(SW_HIDE);
+	EndWaitCursor();
+/*	MessageBox(TEXT("下载完成!"), TEXT("成功"), MB_OK);*/
+}
+
+void CRCClientDlg::OnDownload()
+{
+	// TODO: Add your command handler code here
+	_beginthread(CRCClientDlg::ThreadEntryForDownloadFile, 0, this);
+
+	BeginWaitCursor();	//  将光标变为等待状态图标
 }
 
 
@@ -516,4 +550,12 @@ void CRCClientDlg::OnOpen()
 		AfxMessageBox(TEXT("打开文件命令失败"));
 		return;
 	}
+}
+
+afx_msg LRESULT CRCClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) {
+
+	CString filePath = (LPCTSTR)lParam;
+	UINT CmdAndAuto = wParam;
+	int ret = SendCommandPacket(CmdAndAuto >> 1, CmdAndAuto & 0x1, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	return ret;
 }

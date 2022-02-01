@@ -4,6 +4,10 @@
 
 #pragma once
 
+#include "CCliSock.h"
+#include "StatusDlg.h"
+
+#define WM_SEND_PACKET (WM_USER + 1)
 
 // CRCClientDlg dialog
 class CRCClientDlg : public CDialogEx
@@ -38,6 +42,8 @@ private:
 	void DeleteSelectChildItem(HTREEITEM hTreeSelected);
 	void LoadFileInfo();
 	void LoadFileCurrent();
+	static void ThreadEntryForDownloadFile(void* arg);
+	void ThreadDownloadFile();
 public:
 	afx_msg void OnBnClickedBtnTest();
 	DWORD m_addr_srv;
@@ -52,4 +58,7 @@ public:
 	afx_msg void OnDownload();
 	afx_msg void OnDelete();
 	afx_msg void OnOpen();
+
+	CStatusDlg m_statudDlg;
+	afx_msg LRESULT OnSendPacket(WPARAM wParam, LPARAM lParam);
 };

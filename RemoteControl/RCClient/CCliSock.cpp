@@ -127,7 +127,7 @@ int CCliSocket::dealRequest() {
 	static size_t idx = 0;
 	while (true) {
 		size_t len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
-		if (len <= 0 && idx <= 0) {
+		if (idx <= 0 && len <= 0) {
 			//  0 : Á¬½Ó¶Ï¿ª
 			//  1 : SOCKET_ERROR
 			return FALSE;
