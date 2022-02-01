@@ -24,6 +24,7 @@ CMonitorDlg::~CMonitorDlg()
 void CMonitorDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_SCREEN, m_picture);
 }
 
 
@@ -60,9 +61,18 @@ void CMonitorDlg::OnTimer(UINT_PTR nIDEvent)
 	if (pParent->getIsFull() == FALSE) {
 		return;
 	}
+	
+	//  得到picture 控件的DC
+	CRect rect = {};
+	m_picture.GetWindowRect(&rect);
+	//pParent->getImage().BitBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, SRCCOPY);	//
+	//  大小不适配
+	pParent->getImage().StretchBlt(m_picture.GetDC()->GetSafeHdc(), 0, 0, rect.Width(), rect.Height(), SRCCOPY);
 
+	m_picture.InvalidateRect(NULL);
 
-
+	pParent->getImage().Destroy();
+	pParent->SetIsFull(FALSE);
 
 	CDialog::OnTimer(nIDEvent);
 }

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-const int BUF_SIZ = 4096;
+const int BUF_SIZ = 409600;
 
 typedef struct _MOUSEVENT {
 

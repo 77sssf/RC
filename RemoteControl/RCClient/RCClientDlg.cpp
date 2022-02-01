@@ -199,7 +199,7 @@ int CRCClientDlg::SendCommandPacket(const int nCmd, BOOL autoClose, const BYTE* 
 		return -1;
 	}
 	else {
-		TRACE(TEXT("Connected to server, CmdCode : %d\r\n"), nCmd);
+		//TRACE(TEXT("Connected to server, CmdCode : %d\r\n"), nCmd);
 		pSockCli->sendACK(CPkt(nCmd, pData, nLength));
 		pSockCli->dealRequest();
 		if (autoClose) {
@@ -555,10 +555,25 @@ void CRCClientDlg::OnOpen()
 }
 
 afx_msg LRESULT CRCClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) {
-
+	int cmd = wParam >> 1;
+	BOOL a = (BOOL)(wParam & 1);
 	CString filePath = (LPCTSTR)lParam;
-	UINT CmdAndAuto = wParam;
-	int ret = SendCommandPacket(CmdAndAuto >> 1, CmdAndAuto & 0x1, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	int ret = 0;
+
+	switch (cmd)
+	{
+	case 4:
+		ret = SendCommandPacket(cmd, wParam & 0x1, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+		break;
+	case 5:
+		break;
+	case 6:
+		ret = SendCommandPacket(cmd, wParam & 0x1, NULL, 0);
+		break;
+	default:
+		break;
+	}
+	
 	return ret;
 }
 
@@ -573,20 +588,29 @@ void CRCClientDlg::ThreadEntryForWatchData(void* args) {
 
 void CRCClientDlg::ThreadWatchData() {
 	
+	Sleep(50);
 	CCliSocket* pClient = NULL;
 
 	do {
 		pClient = CCliSocket::getInstance();
 	} while (pClient == NULL);
 
+	//  InitSocket
+
+	ULONGLONG tick = GetTickCount64();
+
 	while (TRUE) {
-		int ret = pClient->sendACK(CPkt(6, NULL, 0));
-		
-		if (ret == FALSE) {
+		if (GetTickCount64() - tick < 50) {
+			Sleep((DWORD)(GetTickCount64() - tick));
+			tick = GetTickCount64();
+		}
+		int ret = SendMessage(WM_SEND_PACKET, (6 << 1 | 1));
+		//
+		if (ret < 0) {
 			Sleep(500);
 		}
 		else {
-			ret = pClient->dealRequest();
+			//ret = pClient->dealRequest();
 			if (ret == 6 && !m_IsFull) {
 				//  TODO : ¥Ê»ÎCImage
 				std::string data = pClient->getPkt().getStrData();	///////////////
@@ -606,6 +630,7 @@ void CRCClientDlg::ThreadWatchData() {
 					pStream->Seek(bg, STREAM_SEEK_SET, NULL);
 					m_image.Load(pStream);
 					m_IsFull = TRUE;
+					
 				}
 			}
 		}
@@ -617,10 +642,10 @@ void CRCClientDlg::ThreadWatchData() {
 void CRCClientDlg::OnBnClickedBtnMonitor()
 {
 	// TODO: Add your control notification handler code here
+	CMonitorDlg dlg(this);
 	_beginthread(CRCClientDlg::ThreadEntryForWatchData, 0, this);
 	//GetDlgItem(IDC_BTN_MONITOR)->EnableWindow(FALSE);
 	//  ∆Ù∂ØDlgœ‘ æΩÿÕº
-	CMonitorDlg dlg(this);
 	dlg.DoModal();
 }
 
@@ -630,4 +655,9 @@ BOOL CRCClientDlg::getIsFull() const {
 
 CImage& CRCClientDlg::getImage() {
 	return m_image;
+}
+
+BOOL CRCClientDlg::SetIsFull(BOOL b) {
+	m_IsFull = b;
+	return TRUE;
 }

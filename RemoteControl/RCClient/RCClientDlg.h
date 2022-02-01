@@ -38,7 +38,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
-	int SendCommandPacket(const int, BOOL autoClose = TRUE, const BYTE* = 0, const int = 0);
+	int SendCommandPacket(const int, BOOL autoClose = TRUE, const BYTE* = NULL, const int = 0);
 	CString GetPath(HTREEITEM hTreeItem);
 	void DeleteSelectChildItem(HTREEITEM hTreeSelected);
 	void LoadFileInfo();
@@ -54,7 +54,7 @@ private:
 public:
 	BOOL getIsFull() const ;
 	CImage& getImage();
-
+	BOOL SetIsFull(BOOL b = false);
 private:
 	CStatusDlg m_statudDlg;
 	BOOL m_IsFull;

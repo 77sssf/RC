@@ -250,6 +250,7 @@ BOOL MouseEvent() {
 
 
 BOOL SendScreen() {
+    //CSrvSocket::getInstance()->sendACK(CPkt(6, NULL, 0));
     CImage screen;
     HDC hScreen = ::GetDC(NULL);
     int nBitPerPixel = GetDeviceCaps(hScreen, BITSPIXEL);   //  一个像素用多少个bit, 带透明度的ARGB8888 32bit, RGB888 24真色彩
