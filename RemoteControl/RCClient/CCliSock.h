@@ -13,6 +13,10 @@ typedef struct _MOUSEVENT {
 
 	}
 
+	_MOUSEVENT(WORD a, WORD b, POINT c) : nAction(a), nButton(b), ptXY(c) {
+	
+	}
+
 	WORD nAction;	//  ÒÆ¶¯»òµã»÷
 	WORD nButton;	//  ×ó¼ü, ÓÒ¼ü
 	POINT ptXY;
