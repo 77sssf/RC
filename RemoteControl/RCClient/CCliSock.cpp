@@ -48,7 +48,6 @@ CCliSocket::CCliSocket() : m_sockCli(INVALID_SOCKET), m_pkt() {
 		MessageBox(NULL, TEXT("无法初始化套接字, 请检查网络环境"), TEXT("初始化错误"), MB_OK | MB_ICONERROR);
 		exit(0);
 	}
-
 	m_buf.resize(BUF_SIZ);
 }
 
@@ -115,7 +114,6 @@ BOOL CCliSocket::initSocket(const int nIP, const int nPort) {
 int CCliSocket::dealRequest() {
 
 	//char buf[BUF_SIZ] = {};		//  local variable
-
 	char* buf = m_buf.data();
 	//memset(buf, 0, BUF_SIZ);
 
