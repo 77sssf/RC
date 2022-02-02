@@ -192,7 +192,7 @@ BOOL MouseEvent() {
             SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);
         }
 
-        TRACE(TEXT("nFlags : %08x x: %d, y: %d\r\n"), nFlags, mouse.ptXY.x, mouse.ptXY.y);
+        //TRACE(TEXT("nFlags : %08x x: %d, y: %d\r\n"), nFlags, mouse.ptXY.x, mouse.ptXY.y);
 
         switch (nFlags) {
 		case 0x21:  //  ×ó¼üË«»÷
@@ -235,7 +235,7 @@ BOOL MouseEvent() {
 			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
             break;
         case 0x08:  //  Êó±êÒÆ¶¯
-            mouse_event(MOUSEEVENTF_MOVE, mouse.ptXY.x, mouse.ptXY.y, 0, GetMessageExtraInfo());
+            mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, mouse.ptXY.x * 65546 / 1920, mouse.ptXY.y * 65536 / 1080, 0, GetMessageExtraInfo());
             break;
         default:
             break;

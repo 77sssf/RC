@@ -59,7 +59,7 @@ private:
 	CStatusDlg m_statudDlg;
 	BOOL m_IsFull;
 	CImage m_image;
-
+	BOOL m_IsDlgClosed;
 public:
 	afx_msg void OnBnClickedBtnTest();
 	DWORD m_addr_srv;

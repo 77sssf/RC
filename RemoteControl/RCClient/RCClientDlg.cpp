@@ -56,6 +56,7 @@ CRCClientDlg::CRCClientDlg(CWnd* pParent /*=nullptr*/)
 	, m_addr_srv(0)
 	, m_port_srv(_T(""))
 	, m_IsFull(FALSE)
+	, m_IsDlgClosed(FALSE)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -471,6 +472,7 @@ void CRCClientDlg::ThreadDownloadFile() {
 	if (nlength == 0) {
 		//  文件打开失败或长度为0字节
 		AfxMessageBox(TEXT("文件打开失败或长度为0字节"));
+		fclose(pf);
 		return;
 	}
 	//  开始接收
@@ -489,6 +491,7 @@ void CRCClientDlg::ThreadDownloadFile() {
 		if (ret == FALSE) {
 			AfxMessageBox(TEXT("断开连接或包已全部解析完毕"));
 			TRACE(TEXT("文件传输失败, return = %d\r\n"), ret);
+			fclose(pf);
 			return;
 		}
 		fwrite(pClient->getPkt().getStrData().c_str(), 1, pClient->getPkt().getStrData().size(), pf);
@@ -604,7 +607,7 @@ void CRCClientDlg::ThreadWatchData() {
 
 	ULONGLONG tick = GetTickCount64();
 
-	while (TRUE) {
+	while (!m_IsDlgClosed) {
 		
 		while (m_IsFull) {
 			Sleep(35);
@@ -634,6 +637,9 @@ void CRCClientDlg::ThreadWatchData() {
 					pStream->Write(data.c_str(), data.size(), &length);
 					LARGE_INTEGER bg = {};
 					pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+					if ((HBITMAP)m_image) {
+						m_image.Destroy();
+					}
 					m_image.Load(pStream);
 					m_IsFull = TRUE;
 					pStream->Release();
@@ -649,11 +655,14 @@ void CRCClientDlg::ThreadWatchData() {
 void CRCClientDlg::OnBnClickedBtnMonitor()
 {
 	// TODO: Add your control notification handler code here
+	m_IsDlgClosed = FALSE;
 	CMonitorDlg dlg(this);
-	_beginthread(CRCClientDlg::ThreadEntryForWatchData, 0, this);
+	HANDLE hThread = (HANDLE)_beginthread(CRCClientDlg::ThreadEntryForWatchData, 0, this);
 	//GetDlgItem(IDC_BTN_MONITOR)->EnableWindow(FALSE);
 	//  启动Dlg显示截图
 	dlg.DoModal();
+	m_IsDlgClosed = TRUE;
+	WaitForSingleObject(hThread, 1);
 }
 
 BOOL CRCClientDlg::getIsFull() const {

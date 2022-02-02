@@ -34,6 +34,8 @@ public:
 
 private:
 	CPoint UserPoint2RemoteScreenPoint(const CPoint& point, BOOL isScreen);
+	int m_nObjWidth, m_nObjHeight;
 public:
 	afx_msg void OnStnClickedScreen();
+	virtual void OnOK();
 };
