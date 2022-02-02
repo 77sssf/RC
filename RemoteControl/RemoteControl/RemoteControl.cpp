@@ -304,9 +304,20 @@ unsigned int __stdcall  threadLoackMachine(void* arg) {
 	::ShowWindow(::FindWindow(TEXT("Shell_TrayWnd"), NULL), SW_HIDE);
 	dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
-	CRect rect = { 0, 0, (int)(GetSystemMetrics(SM_CXFULLSCREEN) * 1.2), (int)(GetSystemMetrics(SM_CYFULLSCREEN) * 1.2) };
+	CRect rect = { 0, 0, (int)(GetSystemMetrics(SM_CXFULLSCREEN)), (int)(GetSystemMetrics(SM_CYFULLSCREEN) * 1.1) };
 
 	dlg.MoveWindow(rect);
+
+    CWnd* pText = dlg.GetDlgItem(IDC_STATIC);
+    if (pText) {
+        CRect rtText;
+        pText->GetWindowRect(&rtText);
+        int nWidth = rtText.Width() / 2;
+        int nHeight = rtText.Height() / 2;
+        int x = (rect.right - nWidth) / 2;
+        int y = (rect.bottom - nHeight) / 2;
+        pText->MoveWindow(x, y, rtText.Width(), rtText.Height());
+    }
 
  	ShowCursor(false);
  	ClipCursor(CRect(0, 0, 0, 0));
