@@ -40,6 +40,8 @@ BEGIN_MESSAGE_MAP(CMonitorDlg, CDialog)
 	ON_WM_RBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_STN_CLICKED(IDC_SCREEN, &CMonitorDlg::OnStnClickedScreen)
+	ON_BN_CLICKED(IDC_BTN_LOCK, &CMonitorDlg::OnBnClickedBtnLock)
+	ON_BN_CLICKED(IDC_BTN_UNLOCK, &CMonitorDlg::OnBnClickedBtnUnlock)
 END_MESSAGE_MAP()
 
 
@@ -246,4 +248,20 @@ void CMonitorDlg::OnOK()
 	// TODO: Add your specialized code here and/or call the base class
 
 	//CDialog::OnOK();
+}
+
+
+void CMonitorDlg::OnBnClickedBtnLock()
+{
+	// TODO: Add your control notification handler code here
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (7 << 1 | 1));
+}
+
+
+void CMonitorDlg::OnBnClickedBtnUnlock()
+{
+	// TODO: Add your control notification handler code here
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (8 << 1 | 1));
 }

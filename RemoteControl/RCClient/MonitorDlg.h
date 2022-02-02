@@ -38,4 +38,6 @@ private:
 public:
 	afx_msg void OnStnClickedScreen();
 	virtual void OnOK();
+	afx_msg void OnBnClickedBtnLock();
+	afx_msg void OnBnClickedBtnUnlock();
 };

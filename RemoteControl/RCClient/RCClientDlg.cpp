@@ -578,6 +578,12 @@ afx_msg LRESULT CRCClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) {
 		ret = SendCommandPacket(cmd, a, NULL, 0);
 		break;
 	}
+	case 7: {
+		ret = SendCommandPacket(cmd, a, NULL, 0);
+	}
+	case 8: {
+		ret = SendCommandPacket(cmd, a, NULL, 0);
+	}
 	default:
 		break;
 	}

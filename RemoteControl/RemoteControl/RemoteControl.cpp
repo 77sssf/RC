@@ -301,18 +301,15 @@ unsigned int __stdcall  threadLoackMachine(void* arg) {
 
 	dlg.Create(IDD_DIALOG_INFO);
 	dlg.ShowWindow(SW_SHOW);
-	::ShowWindow(::FindWindow(TEXT("Shell_TrayWnd"), NULL), SW_HIDE);
-	dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+	//::ShowWindow(::FindWindow(TEXT("Shell_TrayWnd"), NULL), SW_HIDE);
+	//dlg.SetWindowPos(&dlg.wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
 	CRect rect = { 0, 0, (int)(GetSystemMetrics(SM_CXFULLSCREEN) * 1.2), (int)(GetSystemMetrics(SM_CYFULLSCREEN) * 1.2) };
 
 	dlg.MoveWindow(rect);
 
-
-
-
-	ShowCursor(false);
-	ClipCursor(CRect(0, 0, 0, 0));
+// 	ShowCursor(false);
+// 	ClipCursor(CRect(0, 0, 0, 0));
 
 	MSG msg = {};
 
@@ -327,7 +324,7 @@ unsigned int __stdcall  threadLoackMachine(void* arg) {
 
 	ShowCursor(TRUE);
 	::ShowWindow(::FindWindow(TEXT("Shell_TrayWnd"), NULL), SW_SHOW);
-    
+    ClipCursor(NULL);
     dlg.DestroyWindow();
 
     _endthreadex(0);
@@ -351,6 +348,7 @@ BOOL UnLockMachine() {
     //SendMessage(dlg.m_hWnd, WM_KEYDOWN, 0x1B, 0x01E0001);   //  不在同一线程
     PostThreadMessage(TID, WM_KEYDOWN, 0x1B, 0x01E0001);
 
+    CSrvSocket::getInstance()->sendACK(CPkt(8, NULL, 0));
     return TRUE;
 }
 
@@ -426,33 +424,39 @@ int main()
             
             
 
-            CSrvSocket* pSockSrv = CSrvSocket::getInstance();
-            if (pSockSrv == NULL) {
-                return FALSE;
-            }
+//             CSrvSocket* pSockSrv = CSrvSocket::getInstance();
+//             if (pSockSrv == NULL) {
+//                 return FALSE;
+//             }
+// 
+//             if (pSockSrv->initSocket() == FALSE) {
+//                 MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
+//             }
+//             
+//             while (CSrvSocket::getInstance()) {
+//                 int cnt = 0;
+//                 if (pSockSrv->acceptClient() == FALSE) {
+//                     if (cnt >= 3) {
+// 						MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+//                         exit(0);
+//                     }
+//                     MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+//                     Sleep(1000);
+//                     cnt++;
+// 				}
+// 
+//                 int ret = pSockSrv->dealRequest();
+// 
+//                 execCmd(ret);
+// 
+//                 pSockSrv->closeClient();
+//             }
 
-            if (pSockSrv->initSocket() == FALSE) {
-                MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
-            }
             
-            while (CSrvSocket::getInstance()) {
-                int cnt = 0;
-                if (pSockSrv->acceptClient() == FALSE) {
-                    if (cnt >= 3) {
-						MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
-                        exit(0);
-                    }
-                    MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
-                    Sleep(1000);
-                    cnt++;
-				}
+            execCmd(7);
 
-                int ret = pSockSrv->dealRequest();
-
-                execCmd(ret);
-
-                pSockSrv->closeClient();
-            }
+            Sleep(5000);
+            execCmd(8);
         }
     }
     else
