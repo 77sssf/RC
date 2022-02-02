@@ -85,10 +85,14 @@ void CMonitorDlg::OnTimer(UINT_PTR nIDEvent)
 	CDialog::OnTimer(nIDEvent);
 }
 
-CPoint CMonitorDlg::UserPoint2RemoteScreenPoint(const CPoint& point) {
+CPoint CMonitorDlg::UserPoint2RemoteScreenPoint(const CPoint& point, BOOL isScreen) {
+	
 	CPoint cur = point;
 	CRect clientRect = {};
-	ScreenToClient(&cur);
+
+	if (isScreen) {
+		ScreenToClient(&cur);
+	}
 
 	//  将客户区坐标转为服务端全局坐标
 	m_picture.GetWindowRect(&clientRect);
@@ -107,10 +111,11 @@ void CMonitorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
 
-	CPoint remotePoint = UserPoint2RemoteScreenPoint(point);
+	CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 	MOUSEVENT mouseEvent(1, 0, remotePoint);
-	CCliSocket::getInstance()->sendACK(CPkt(5, (BYTE*)&mouseEvent, sizeof(mouseEvent)));
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
 	
 	CDialog::OnLButtonDblClk(nFlags, point);
 }
@@ -119,12 +124,12 @@ void CMonitorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 void CMonitorDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
-
-	CPoint remotePoint = UserPoint2RemoteScreenPoint(point);
+	CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 	MOUSEVENT mouseEvent(2, 0, remotePoint);
-	CCliSocket::getInstance()->sendACK(CPkt(5, (BYTE*)&mouseEvent, sizeof(mouseEvent)));
-
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+	
 	CDialog::OnLButtonDown(nFlags, point);
 }
 
@@ -133,10 +138,11 @@ void CMonitorDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
 
-	CPoint remotePoint = UserPoint2RemoteScreenPoint(point);
+	CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 	MOUSEVENT mouseEvent(3, 0, remotePoint);
-	CCliSocket::getInstance()->sendACK(CPkt(5, (BYTE*)&mouseEvent, sizeof(mouseEvent)));
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
 
 	CDialog::OnLButtonUp(nFlags, point);
 }
@@ -146,10 +152,11 @@ void CMonitorDlg::OnRButtonDblClk(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
 
-	CPoint remotePoint = UserPoint2RemoteScreenPoint(point);
+	CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 	MOUSEVENT mouseEvent(1, 1, remotePoint);
-	CCliSocket::getInstance()->sendACK(CPkt(5, (BYTE*)&mouseEvent, sizeof(mouseEvent)));
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
 
 	CDialog::OnRButtonDblClk(nFlags, point);
 }
@@ -159,10 +166,11 @@ void CMonitorDlg::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
 
-	CPoint remotePoint = UserPoint2RemoteScreenPoint(point);
+	CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 	MOUSEVENT mouseEvent(2, 1, remotePoint);
-	CCliSocket::getInstance()->sendACK(CPkt(5, (BYTE*)&mouseEvent, sizeof(mouseEvent)));
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
 
 	CDialog::OnRButtonDown(nFlags, point);
 }
@@ -172,10 +180,11 @@ void CMonitorDlg::OnRButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
 
-	CPoint remotePoint = UserPoint2RemoteScreenPoint(point);
+	CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 	MOUSEVENT mouseEvent(3, 1, remotePoint);
-	CCliSocket::getInstance()->sendACK(CPkt(5, (BYTE*)&mouseEvent, sizeof(mouseEvent)));
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
 
 	CDialog::OnRButtonUp(nFlags, point);
 }
@@ -184,6 +193,12 @@ void CMonitorDlg::OnRButtonUp(UINT nFlags, CPoint point)
 void CMonitorDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: Add your message handler code here and/or call default
+
+	CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
+
+	MOUSEVENT mouseEvent(4, 3, remotePoint);
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
 
 	CDialog::OnMouseMove(nFlags, point);
 }
@@ -196,8 +211,11 @@ void CMonitorDlg::OnStnClickedScreen()
 	CPoint point = {};
 	GetCursorPos(&point);
 
-	CPoint remotePoint = UserPoint2RemoteScreenPoint(point);
+	CPoint remotePoint = UserPoint2RemoteScreenPoint(point, TRUE);
 
 	MOUSEVENT mouseEvent(0, 0, remotePoint);
-	CCliSocket::getInstance()->sendACK(CPkt(5, (BYTE*)&mouseEvent, sizeof(mouseEvent)));
+	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+// 	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
+// 	pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
 }

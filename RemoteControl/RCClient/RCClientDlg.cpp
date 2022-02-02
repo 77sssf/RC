@@ -555,21 +555,26 @@ void CRCClientDlg::OnOpen()
 }
 
 afx_msg LRESULT CRCClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) {
+	
 	int cmd = wParam >> 1;
-	BOOL a = (BOOL)(wParam & 1);
-	CString filePath = (LPCTSTR)lParam;
+	BOOL a = (BOOL)(wParam & 0x1);
 	int ret = 0;
 
 	switch (cmd)
 	{
-	case 4:
-		ret = SendCommandPacket(cmd, wParam & 0x1, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	case 4: {
+		CString filePath = (LPCTSTR)lParam;
+		ret = SendCommandPacket(cmd, a, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
 		break;
-	case 5:
+	}
+	case 5: {
+		ret = SendCommandPacket(cmd, a, (BYTE*)lParam, sizeof(MOUSEVENT));
 		break;
-	case 6:
-		ret = SendCommandPacket(cmd, wParam & 0x1, NULL, 0);
+	}
+	case 6: {
+		ret = SendCommandPacket(cmd, a, NULL, 0);
 		break;
+	}
 	default:
 		break;
 	}

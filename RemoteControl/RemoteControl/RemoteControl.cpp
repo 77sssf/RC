@@ -192,6 +192,8 @@ BOOL MouseEvent() {
             SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);
         }
 
+        TRACE(TEXT("nFlags : %08x x: %d, y: %d\r\n"), nFlags, mouse.ptXY.x, mouse.ptXY.y);
+
         switch (nFlags) {
 		case 0x21:  //  ×ó¼üË«»÷
 			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());

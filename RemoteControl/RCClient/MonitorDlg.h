@@ -33,7 +33,7 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 
 private:
-	CPoint UserPoint2RemoteScreenPoint(const CPoint& point);
+	CPoint UserPoint2RemoteScreenPoint(const CPoint& point, BOOL isScreen);
 public:
 	afx_msg void OnStnClickedScreen();
 };
