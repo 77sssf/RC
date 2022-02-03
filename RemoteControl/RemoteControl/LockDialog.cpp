@@ -2,9 +2,6 @@
 //
 
 #include "pch.h"
-#include "RemoteControl.h"
-#include "LockDialog.h"
-#include "afxdialogex.h"
 
 
 // CLockDialog dialog

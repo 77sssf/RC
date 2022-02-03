@@ -9,5 +9,16 @@
 
 // add headers that you want to pre-compile here
 #include "framework.h"
+#include "SrvSocket.h"
+#include <direct.h>
+#include <io.h>
+//#include <list>
+#include <atlimage.h>
+#include "LockDialog.h"
+#include "RemoteControl.h"
+#include <map>
+#include <afxdialogex.h>
+#include "Tool.h"
+#include "CommandHanle.h"
 
 #endif //PCH_H

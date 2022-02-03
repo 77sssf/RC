@@ -1,6 +1,4 @@
 #include "pch.h"
-#include "Pkt.h"
-
 
 CPkt::CPkt() : sHead(0), nLength(0), sCmd(0), sSum(0) {
 
