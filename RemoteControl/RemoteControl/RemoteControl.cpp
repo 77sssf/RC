@@ -27,32 +27,10 @@ int main()
         }
         else
         {
-            CSrvSocket* pSockSrv = CSrvSocket::getInstance();
-            CCommandHanle cmd;
-
-            if (pSockSrv == NULL) {
-                return FALSE;
-            }
-
-            if (pSockSrv->initSocket() == FALSE) {
+			CCommandHanle cmd;
+            if (!CSrvSocket::getInstance()->Run(&CCommandHanle::RunCommand, &cmd)) {
                 MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
-            }
-            
-            while (CSrvSocket::getInstance()) {
-                int cnt = 0;
-                if (pSockSrv->acceptClient() == FALSE) {
-                    if (cnt >= 3) {
-						MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
-                        exit(0);
-                    }
-                    MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
-                    Sleep(1000);
-                    cnt++;
-				}
-
-                int ret = pSockSrv->dealRequest();
-                cmd.ExecuteCommand(ret);
-                pSockSrv->closeClient();
+                exit(-1);
             }
         }
     }
@@ -62,6 +40,5 @@ int main()
         wprintf(L"Fatal Error: GetModuleHandle failed\n");
         nRetCode = 1;
     }
-
     return nRetCode;
 }

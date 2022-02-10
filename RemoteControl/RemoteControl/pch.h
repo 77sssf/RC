@@ -12,13 +12,15 @@
 #include "SrvSocket.h"
 #include <direct.h>
 #include <io.h>
-//#include <list>
+#include <vector>
+#include <map>
+#include <list>
 #include <atlimage.h>
 #include "LockDialog.h"
 #include "RemoteControl.h"
-#include <map>
 #include <afxdialogex.h>
 #include "Tool.h"
 #include "CommandHanle.h"
+#include "Pkt.h"
 
 #endif //PCH_H

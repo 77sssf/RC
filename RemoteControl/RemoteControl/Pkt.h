@@ -3,6 +3,28 @@
 #pragma pack(push)
 #pragma pack(1)
 
+typedef struct _MOUSEVENT {
+
+	_MOUSEVENT() : nAction(0), nButton(-1), ptXY{ 0, 0 } {
+
+	}
+
+	WORD nAction;	//  移动或点击
+	WORD nButton;	//  左键, 右键
+	POINT ptXY;
+
+}MOUSEVENT, * PMOUSEVENT;
+
+typedef struct _FILEINFO {
+	_FILEINFO() : szFileName{}, IsInvalid(TRUE), IsDirectory(FALSE), HasNext(TRUE) {
+
+	}
+	char szFileName[MAX_PATH];
+	BOOL IsInvalid; //  是否有效
+	BOOL IsDirectory;
+	BOOL HasNext;   //  是否还有后续
+}FILEINFO, * PFILEINFO;
+
 class CPkt
 {
 public:

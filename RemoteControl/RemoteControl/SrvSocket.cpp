@@ -1,6 +1,5 @@
 #include "pch.h"
 
-
 CSrvSocket* CSrvSocket::m_instance = NULL;
 CSrvSocket::CHelper CSrvSocket::m_helper;	//  definition
 
@@ -61,7 +60,7 @@ BOOL CSrvSocket::InitWSA() {
 	return TRUE;
 }
 
-BOOL CSrvSocket::initSocket() {
+BOOL CSrvSocket::initSocket(short sPort) {
 	m_sockSrv = socket(PF_INET, SOCK_STREAM, 0);
 	if (m_sockSrv == INVALID_SOCKET) {
 		//  TODO : 初始化失败
@@ -75,7 +74,7 @@ BOOL CSrvSocket::initSocket() {
 	SOCKADDR_IN addrSrv = {};
 	addrSrv.sin_family = AF_INET;
 	addrSrv.sin_addr.S_un.S_addr = INADDR_ANY;
-	addrSrv.sin_port = htons(7070);
+	addrSrv.sin_port = htons(sPort);
 
 	if (bind(m_sockSrv, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR)) == SOCKET_ERROR) {
 		return FALSE;
@@ -85,8 +84,42 @@ BOOL CSrvSocket::initSocket() {
 		return FALSE;
 	}
 
-	m_buf.clear();
-	m_buf.resize(BUF_SIZ);
+	return TRUE;
+}
+
+BOOL CSrvSocket::Run(SOCK_CALLBACK callback, void* arg, short sPort) {
+	
+	BOOL ret = initSocket(sPort);
+	if (ret == FALSE) {
+		return ret;
+	}
+	std::list<CPkt> lstPkt;
+	m_callback = callback;
+	m_arg = arg;
+
+	while (TRUE) {
+		int cnt = 0;
+		if (!acceptClient()) {
+			if (cnt >= 3) {
+				MessageBox(NULL, TEXT("无法接入用户"), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+				exit(0);
+			}
+			MessageBox(NULL, TEXT("无法接入用户, 自动重试..."), TEXT("接入用户失败"), MB_OK | MB_ICONERROR);
+			Sleep(1000);
+			cnt++;
+			continue;
+		}
+		ret = dealRequest();
+		if (ret > 0) {
+			m_callback(m_arg, ret, lstPkt, m_pkt);	//  将第一个包传递
+			//  send
+			while (lstPkt.size() > 0) {
+				sendACK(lstPkt.front());
+				lstPkt.pop_front();
+			}
+		}
+		closeClient();
+	}
 
 	return TRUE;
 }
@@ -176,6 +209,14 @@ BOOL CSrvSocket::closeClient(/*SOCKET& s*/) {
 // 	closesocket(s);
 // 	s = INVALID_SOCKET;
 	closesocket(m_sockCli);
+	m_sockCli = INVALID_SOCKET;
+	m_buf.clear();
+	m_buf.resize(BUF_SIZ);
+	return TRUE;
+}
+
+BOOL CSrvSocket::closeServer() {
+	closesocket(m_sockSrv);
 	m_sockCli = INVALID_SOCKET;
 	return TRUE;
 }

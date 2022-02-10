@@ -28,16 +28,22 @@ CCommandHanle::~CCommandHanle() {
 
 }
 
-BOOL CCommandHanle::ExecuteCommand(int nCmd) {
+void CCommandHanle::RunCommand(void* arg, BOOL status, std::list<CPkt>& lstPkt, CPkt& inPkt) {	//  static
+	CCommandHanle* pCmd = (CCommandHanle*)arg;
+	if (pCmd->ExecuteCommand(status, lstPkt, inPkt) == FALSE) {
+		//
+	}
+}
+
+BOOL CCommandHanle::ExecuteCommand(int nCmd, std::list<CPkt>& lstPkt, CPkt& inPkt) {
 	std::map<int, CMDFUNC>::iterator it = m_mapFunction.find(nCmd);
 	if (it == m_mapFunction.end()) {
 		return FALSE;
 	}
-	return (this->*it->second)();
+	return (this->*it->second)(lstPkt, inPkt);
 }
 
-
-BOOL CCommandHanle::MakeDriverInfo() {
+BOOL CCommandHanle::MakeDriverInfo(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 	std::string res;
 	//  _chdrive(); //  A盘 : 1 B盘 : 2 ... Z盘 : 26
 	for (int i = 1; i <= 26; ++i) {
@@ -49,20 +55,19 @@ BOOL CCommandHanle::MakeDriverInfo() {
 			res += ",";
 		}
 	}
-	CSrvSocket::getInstance()->sendACK(CPkt((WORD)1, (BYTE*)res.c_str(), res.size()));
+	lstPkt.push_back(CPkt((WORD)1, (BYTE*)res.c_str(), res.size()));
 	return TRUE;
 }
 
+BOOL CCommandHanle::MakeDirectoryInfo(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 
-BOOL CCommandHanle::MakeDirectoryInfo() {
-
-	std::string filePath;
+	std::string filePath = inPkt.getStrData();
 	//std::list<FILEINFO> lst;
 
-	if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
-		//  cmd != 2
-		return FALSE;
-	}
+// 	if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
+// 		//  cmd != 2
+// 		return FALSE;
+// 	}
 
 	//  切换_chdir
 	if (_chdir(filePath.c_str())) {
@@ -89,13 +94,13 @@ BOOL CCommandHanle::MakeDirectoryInfo() {
 
 		//TRACE(TEXT("srv send file: %s\r\n"), fifo.szFileName);
 		//Sleep(50);
-		CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
+		lstPkt.push_back(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
 
 	} while (!_findnext(hFile, &fdata));
 
 	FILEINFO fifo;  //  constructor
 	fifo.HasNext = FALSE;
-	CSrvSocket::getInstance()->sendACK(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
+	lstPkt.push_back(CPkt(2, (BYTE*)&fifo, sizeof(fifo)));
 
 	_findclose(hFile);
 
@@ -106,25 +111,25 @@ BOOL CCommandHanle::MakeDirectoryInfo() {
 	return TRUE;
 }
 
-BOOL CCommandHanle::RunFile() {
-	std::string filePath;
-	if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
-		return FALSE;
-	}
+BOOL CCommandHanle::RunFile(std::list<CPkt>& lstPkt, CPkt& inPkt) {
+	std::string filePath = inPkt.getStrData();
+// 	if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
+// 		return FALSE;
+// 	}
 	ShellExecuteA(NULL, NULL, filePath.c_str(), NULL, NULL, SW_SHOWNORMAL);
-	CSrvSocket::getInstance()->sendACK(CPkt(3, NULL, 0)); //  传递空, sendACK是否判断空指针的情况
+	lstPkt.push_back(CPkt(3, NULL, 0)); //  传递空, sendACK是否判断空指针的情况
 	return TRUE;
 }
 
-BOOL CCommandHanle::DownloadFile() {
-	std::string filePath;
+BOOL CCommandHanle::DownloadFile(std::list<CPkt>& lstPkt, CPkt& inPkt) {
+	std::string filePath = inPkt.getStrData();
 	long long dlen = 0;
-	if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
-		return FALSE;
-	}
+// 	if (CSrvSocket::getInstance()->getFilePath(filePath) == FALSE) {
+// 		return FALSE;
+// 	}
 	FILE* pf = fopen(filePath.c_str(), "rb");
 	if (pf == NULL) {
-		CSrvSocket::getInstance()->sendACK(CPkt(4, (BYTE*)&dlen, 8));
+		lstPkt.push_back(CPkt(4, (BYTE*)&dlen, 8));
 		return FALSE;
 	}
 
@@ -132,32 +137,32 @@ BOOL CCommandHanle::DownloadFile() {
 	dlen = _ftelli64(pf);
 	fseek(pf, 0, SEEK_SET);
 
-	CSrvSocket::getInstance()->sendACK(CPkt(4, (BYTE*)&dlen, 8));    //  文件大小
+	lstPkt.push_back(CPkt(4, (BYTE*)&dlen, 8));    //  文件大小
 
 	char buf[1024] = {};
 	size_t rlen = 0;
 	do {
 		rlen = fread(buf, 1, 1024, pf);
-		CSrvSocket::getInstance()->sendACK(CPkt(4, (BYTE*)buf, rlen));
+		lstPkt.push_back(CPkt(4, (BYTE*)buf, rlen));
 	} while (rlen >= 1024);
-	CSrvSocket::getInstance()->sendACK(CPkt(4, NULL, 0));    //  代表结尾
+	lstPkt.push_back(CPkt(4, NULL, 0));    //  代表结尾
 	fclose(pf);
 	return TRUE;
 }
 
-BOOL CCommandHanle::DeleteLocalFile() {
-	std::string filePath;
-	CSrvSocket::getInstance()->getFilePath(filePath);
+BOOL CCommandHanle::DeleteLocalFile(std::list<CPkt>& lstPkt, CPkt& inPkt) {
+	std::string filePath = inPkt.getStrData();
+	// CSrvSocket::getInstance()->getFilePath(filePath);
 	int ret = DeleteFile(filePath.c_str());
-	CSrvSocket::getInstance()->sendACK(CPkt(9, NULL, 0));
+	lstPkt.push_back(CPkt(9, NULL, 0));
 	return TRUE;
 }
 
-BOOL CCommandHanle::MouseEvent() {
+BOOL CCommandHanle::MouseEvent(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 
 	MOUSEVENT mouse;
-
-	if (CSrvSocket::getInstance()->getMouseEvent(mouse)) {
+	memcpy(&mouse, inPkt.getStrData().c_str(), sizeof(MOUSEVENT));
+	if (TRUE) {
 
 		DWORD nFlags = 0;
 
@@ -250,8 +255,7 @@ BOOL CCommandHanle::MouseEvent() {
 		default:
 			break;
 		}
-		CSrvSocket::getInstance()->sendACK(CPkt(4, NULL, 0));
-
+		lstPkt.push_back(CPkt(4, NULL, 0));
 	}
 	else {
 		//  
@@ -261,7 +265,7 @@ BOOL CCommandHanle::MouseEvent() {
 }
 
 
-BOOL CCommandHanle::SendScreen() {
+BOOL CCommandHanle::SendScreen(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 	//CSrvSocket::getInstance()->sendACK(CPkt(6, NULL, 0));
 	CImage screen;
 	HDC hScreen = ::GetDC(NULL);
@@ -293,7 +297,7 @@ BOOL CCommandHanle::SendScreen() {
 			//
 		}
 		SIZE_T nSize = GlobalSize(hMem);
-		CSrvSocket::getInstance()->sendACK(CPkt(6, pData, nSize));  // 如果pData过大接收端会出问题, 因为客户端recv一次接收4K
+		lstPkt.push_back(CPkt(6, pData, nSize));	// 如果pData过大接收端会出问题, 因为客户端recv一次接收4K
 		GlobalUnlock(hMem);
 	}
 
@@ -304,32 +308,33 @@ BOOL CCommandHanle::SendScreen() {
 	return TRUE;
 }
 
-BOOL CCommandHanle::LockMachine() {
+BOOL CCommandHanle::LockMachine(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 
 	if (!dlg.m_hWnd || dlg.m_hWnd == INVALID_HANDLE_VALUE) {
 		//_beginthread(threadLoackMachine, 0, NULL);
 		_beginthreadex(NULL, 0, CCommandHanle::ThreadLoackMachine, this, 0, &TID);
 	}
 
-	CSrvSocket::getInstance()->sendACK(CPkt(7, NULL, 0));
+	lstPkt.push_back(CPkt(7, NULL, 0));
 
 	return TRUE;
 }
 
-BOOL CCommandHanle::UnLockMachine() {
+BOOL CCommandHanle::UnLockMachine(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 
 	//SendMessage(dlg.m_hWnd, WM_KEYDOWN, 0x1B, 0x01E0001);   //  不在同一线程
 	PostThreadMessage(TID, WM_KEYDOWN, 0x1B, 0x01E0001);
 
-	CSrvSocket::getInstance()->sendACK(CPkt(8, NULL, 0));
+	lstPkt.push_back(CPkt(8, NULL, 0));
 	while (dlg.m_hWnd) {
 		Sleep(50);
 	}
 	return TRUE;
 }
 
-BOOL CCommandHanle::ConnectTest() {
-	CSrvSocket::getInstance()->sendACK(CPkt(7777, NULL, 0));
+BOOL CCommandHanle::ConnectTest(std::list<CPkt>& lstPkt, CPkt& inPkt) {
+	lstPkt.push_back(CPkt(7777, NULL, 0));
+	TRACE(TEXT("connected\r\n"));
 	return TRUE;
 }
 

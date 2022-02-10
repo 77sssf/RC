@@ -1,40 +1,18 @@
-#pragma once
 
-#include "pch.h"
-#include "framework.h"
-#include "Pkt.h"
 #include <vector>
+#include <list>
+#include "Pkt.h"
 
 const int BUF_SIZ = 4096;
 
-typedef struct _MOUSEVENT{
-
-	_MOUSEVENT() : nAction(0), nButton(-1), ptXY{0, 0} {
-	
-	}
-
-	WORD nAction;	//  移动或点击
-	WORD nButton;	//  左键, 右键
-	POINT ptXY;
-
-}MOUSEVENT, *PMOUSEVENT;
-
-typedef struct _FILEINFO {
-	_FILEINFO() : szFileName{}, IsInvalid(TRUE), IsDirectory(FALSE), HasNext(TRUE) {
-
-	}
-	char szFileName[MAX_PATH];
-	BOOL IsInvalid; //  是否有效
-	BOOL IsDirectory;
-	BOOL HasNext;   //  是否还有后续
-}FILEINFO, * PFILEINFO;
+typedef void(*SOCK_CALLBACK)(void* arg, BOOL ret, std::list<CPkt>& lstPkt, CPkt&);
 
 class CSrvSocket
 {
 public:
 	static CSrvSocket* getInstance();
 
-	BOOL initSocket();
+	BOOL initSocket(short sPort = 7070);
 	BOOL acceptClient();
 	BOOL dealRequest();
 
@@ -44,6 +22,9 @@ public:
 	BOOL getFilePath(std::string&);
 	BOOL getMouseEvent(MOUSEVENT&);
 	BOOL closeClient();
+	BOOL closeServer();
+
+	BOOL Run(SOCK_CALLBACK callback, void* arg, short sPort = 7070);
 
 private:
 	
@@ -65,6 +46,8 @@ private:
 
 	static CHelper m_helper;
 
+	SOCK_CALLBACK m_callback;
+	void* m_arg;
 	SOCKET m_sockSrv;
 	SOCKET m_sockCli;
 	CPkt m_pkt;

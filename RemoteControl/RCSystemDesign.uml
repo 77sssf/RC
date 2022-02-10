@@ -1935,7 +1935,6 @@ c. 与远程桌面进行交互 (鼠标, 加锁, 解锁)
 </XPD:OBJ>
 <XPD:OBJ name="Operations[2]" type="UMLOperation" guid="ohGoO+V1k0mygtc3fpAAZAAA">
 <XPD:ATTR name="Name" type="string">ExcuteCommand</XPD:ATTR>
-<XPD:ATTR name="OwnerScope" type="UMLScopeKind">skClassifier</XPD:ATTR>
 <XPD:REF name="Owner">lDHFiJdeL0i0lVHmKs44nwAA</XPD:REF>
 <XPD:ATTR name="#Parameters" type="integer">2</XPD:ATTR>
 <XPD:OBJ name="Parameters[0]" type="UMLParameter" guid="/Xyn7VIQm0q8VBuXAOZYVQAA">
