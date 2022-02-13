@@ -4,6 +4,7 @@
 #include "pkt.h"
 #include <string>
 #include <vector>
+#include "ClientController.h"
 
 const int BUF_SIZ = 4096000;
 
@@ -37,7 +38,7 @@ class CCliSocket
 {
 public:
 	static CCliSocket* getInstance();
-	BOOL initSocket(const int, const int);
+	BOOL initSocket();
 
 	BOOL dealRequest();
 
@@ -47,7 +48,7 @@ public:
 	BOOL getFilePath(std::string&);
 	BOOL getMouseEvent(MOUSEVENT&);
 	CPkt getPkt() const;
-
+	void UpdateAddress(const int nIP, const int nPort);
 	BOOL closeSock();
 private:
 
@@ -67,7 +68,9 @@ private:
 		CHelper();
 		~CHelper();
 	};
-
+	 
+	int m_nIP;
+	int m_nPort;
 	static CHelper m_helper;
 	SOCKET m_sockCli;
 	CPkt m_pkt;

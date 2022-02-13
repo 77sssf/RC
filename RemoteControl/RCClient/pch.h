@@ -9,5 +9,16 @@
 
 // add headers that you want to pre-compile here
 #include "framework.h"
+#include "RCClient.h"
+#include "afxdialogex.h"
+#include "CCliSock.h"
+
+#include "MonitorDlg.h"
+#include "RCClientDlg.h"
+#include "StatusDlg.h"
+#include <map>
+#include <string>
+#include "resource.h"
+#include "Tool.h"
 
 #endif //PCH_H

@@ -3,11 +3,6 @@
 //
 
 #include "pch.h"
-#include "framework.h"
-#include "RCClient.h"
-#include "RCClientDlg.h"
-#include "afxdialogex.h"
-
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -32,6 +27,7 @@ public:
 // Implementation
 protected:
 	DECLARE_MESSAGE_MAP()
+public:
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
@@ -85,6 +81,8 @@ BEGIN_MESSAGE_MAP(CRCClientDlg, CDialogEx)
 	ON_COMMAND(ID_OPEN, &CRCClientDlg::OnOpen)
 	ON_MESSAGE(WM_SEND_PACKET, &CRCClientDlg::OnSendPacket)
 	ON_BN_CLICKED(IDC_BTN_MONITOR, &CRCClientDlg::OnBnClickedBtnMonitor)
+	ON_NOTIFY(IPN_FIELDCHANGED, IDC_IPADDRESS_SRV, &CRCClientDlg::OnIpnFieldchangedIpaddressSrv)
+	ON_EN_CHANGE(IDC_EDIT_PORT, &CRCClientDlg::OnEnChangeEditPort)
 END_MESSAGE_MAP()
 
 
@@ -125,8 +123,11 @@ BOOL CRCClientDlg::OnInitDialog()
 	m_addr_srv = 0x7F000001;
 	UpdateData(FALSE);
 
-	m_statudDlg.Create(IDD_DLG_STATUS, this);
-	m_statudDlg.ShowWindow(SW_HIDE);
+	UpdateData();
+	CClientController::getInstance()->UpdateAddress(m_addr_srv, atoi((LPCTSTR)m_port_srv));
+
+	m_statusDlg.Create(IDD_DLG_STATUS, this);
+	m_statusDlg.ShowWindow(SW_HIDE);
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -185,31 +186,9 @@ HCURSOR CRCClientDlg::OnQueryDragIcon()
 void CRCClientDlg::OnBnClickedBtnTest()
 {
 	// TODO: Add your control notification handler code here
-
-	SendCommandPacket(7777);
+	CClientController::getInstance()->SendCommandPacket(7777);
 }
 
-
-int CRCClientDlg::SendCommandPacket(const int nCmd, BOOL autoClose, const BYTE* pData, const int nLength) {
-	
-	UpdateData();
-
-	CCliSocket* pSockCli = CCliSocket::getInstance();
-	if (pSockCli->initSocket(m_addr_srv, atoi((LPCTSTR)m_port_srv)) == FALSE) {
-		//  ... 
-		return -1;
-	}
-	else {
-		//TRACE(TEXT("Connected to server, CmdCode : %d\r\n"), nCmd);
-		pSockCli->sendACK(CPkt(nCmd, pData, nLength));
-		pSockCli->dealRequest();
-		if (autoClose) {
-			pSockCli->closeSock();
-		}
-	}
-
-	return pSockCli->getPkt().getCmd();
-}
 
 void CRCClientDlg::OnTvnSelchangedTree1(NMHDR* pNMHDR, LRESULT* pResult)
 {
@@ -223,7 +202,7 @@ void CRCClientDlg::OnBnClickedBtnFileinfo()
 {
 	// TODO: Add your control notification handler code here
 	CCliSocket* pSockCli = CCliSocket::getInstance();
-	int ret = SendCommandPacket(1);
+	int ret = CClientController::getInstance()->SendCommandPacket(1);
 	if (ret == -1) {
 		AfxMessageBox(TEXT("OnBnClickedBtnFileinfo()"));
 		return;
@@ -288,7 +267,7 @@ void CRCClientDlg::LoadFileInfo() {
 
 	CCliSocket* pSockCli = CCliSocket::getInstance();
 	CString strPath = GetPath(hTreeSelected);
-	int nCmd = SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)strPath, strPath.GetLength());
+	int nCmd = CClientController::getInstance()->SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)strPath, strPath.GetLength());
 	if (nCmd == -1) {
 
 	}
@@ -326,7 +305,7 @@ void CRCClientDlg::LoadFileInfo() {
 			}
 		}
 
-		pSockCli->dealRequest();
+		CClientController::getInstance()->DealRequest();
 
 		t = pSockCli->getPkt().getStrData();
 		fInfo = {};
@@ -334,7 +313,7 @@ void CRCClientDlg::LoadFileInfo() {
 		Insert = TRUE;
 	}
 
-	pSockCli->closeSock();
+	CClientController::getInstance()->closeSock();
 }
 
 void CRCClientDlg::LoadFileCurrent() {
@@ -345,8 +324,7 @@ void CRCClientDlg::LoadFileCurrent() {
 	m_list.DeleteAllItems();
 
 	CCliSocket* pSockCli = CCliSocket::getInstance();
-
-	int nCmd = SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	int nCmd = CClientController::getInstance()->SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)filePath, filePath.GetLength());
 	if (nCmd == -1) {
 
 	}
@@ -384,7 +362,7 @@ void CRCClientDlg::LoadFileCurrent() {
 			}
 		}
 
-		pSockCli->dealRequest();
+		CClientController::getInstance()->DealRequest();
 
 		t = pSockCli->getPkt().getStrData();
 		fInfo = {};
@@ -427,94 +405,25 @@ void CRCClientDlg::OnNMRClickList1(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
-void CRCClientDlg::ThreadEntryForDownloadFile(void* arg) {	//  static
-	
-
-	CRCClientDlg* pDlg = (CRCClientDlg*)arg;
-
-	pDlg->ThreadDownloadFile();
-
-	_endthread();
-}
-
-void CRCClientDlg::ThreadDownloadFile() {
-
+void CRCClientDlg::OnDownload()
+{
+	//  TODO: Add your command handler code here
+	//  获取服务端文件路径
 	int nListSelected = m_list.GetSelectionMark();
 	CString fileName = m_list.GetItemText(nListSelected, 0);
-
-	// dialog选择路径
+	HTREEITEM hSelected = m_tree.GetSelectedItem();
+	CString filePath = GetPath(hSelected);
+	filePath = filePath + fileName;
+	//  获取客户端文件路径
 	CFileDialog dlg(FALSE, "*", fileName, OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY, NULL, this);
 	if (dlg.DoModal() != IDOK) {
 		return;
 	}
 
-	FILE* pf = fopen(dlg.GetPathName(), "wb+");
-	if (pf == NULL) {
-		AfxMessageBox(TEXT("本地打开文件失败"));
-		return;
-	}
-
-	HTREEITEM hSelected = m_tree.GetSelectedItem();
-	CString filePath = GetPath(hSelected);
-	filePath = filePath + fileName;
-	TRACE(TEXT("Download file path : %s\r\n"), filePath);
-	//int ret = SendCommandPacket(4, FALSE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
-	int ret = SendMessage(WM_SEND_PACKET, (4 << 1 | 0), (LPARAM)(LPCTSTR)filePath);
+	int ret = CClientController::getInstance()->DownloadFile(filePath, dlg.GetPathName());
 	if (ret < 0) {
-		AfxMessageBox(TEXT("下载命令失败\r\n"));
-		TRACE(TEXT("下载命令失败, return = %d\r\n"), ret);
-		return;
+			
 	}
-	//  第一个包为长度
-	//  最后一个包为空代表结束
-	CCliSocket* pClient = CCliSocket::getInstance();
-	long long nlength = *((long long*)pClient->getPkt().getStrData().c_str());
-	if (nlength == 0) {
-		//  文件打开失败或长度为0字节
-		AfxMessageBox(TEXT("文件打开失败或长度为0字节"));
-		fclose(pf);
-		return;
-	}
-	//  开始接收
-
-	m_statudDlg.m_info.SetWindowText(TEXT("文件下载中"));
-	m_statudDlg.SetActiveWindow();
-	m_statudDlg.CenterWindow(this);
-	m_statudDlg.ShowWindow(SW_SHOW);	//  小文件进度界面会一闪而过
-
-	long long cnt = 0;
-
-	// -----------------添加线程函数---------------------------------
-	
-	while (cnt < nlength) {
-		ret = pClient->dealRequest();
-		if (ret == FALSE) {
-			AfxMessageBox(TEXT("断开连接或包已全部解析完毕"));
-			TRACE(TEXT("文件传输失败, return = %d\r\n"), ret);
-			fclose(pf);
-			return;
-		}
-		fwrite(pClient->getPkt().getStrData().c_str(), 1, pClient->getPkt().getStrData().size(), pf);
-		cnt += pClient->getPkt().getStrData().size();
-		if (pClient->getPkt().getStrData().size() == 0) {
-			// ...
-		}
-	}
-	// -------------------------------------------------------------
-
-	pClient->closeSock();
-	fclose(pf);
-	m_statudDlg.ShowWindow(SW_HIDE);
-	EndWaitCursor();
-/*	MessageBox(TEXT("下载完成!"), TEXT("成功"), MB_OK);*/
-}
-
-void CRCClientDlg::OnDownload()
-{
-	// TODO: Add your command handler code here
-	_beginthread(CRCClientDlg::ThreadEntryForDownloadFile, 0, this);
-
-	BeginWaitCursor();	//  将光标变为等待状态图标
 }
 
 
@@ -527,8 +436,7 @@ void CRCClientDlg::OnDelete()
 	CString fileName = m_list.GetItemText(nListSelected, 0);
 
 	filePath = filePath + fileName;
-
-	int ret = SendCommandPacket(9, TRUE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	int ret = CClientController::getInstance()->SendCommandPacket(9, TRUE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
 
 	if (ret < 0) {
 		AfxMessageBox(TEXT("删除文件命令失败"));
@@ -549,7 +457,7 @@ void CRCClientDlg::OnOpen()
 
 	filePath = filePath + fileName;
 
-	int ret = SendCommandPacket(3, TRUE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+	int ret = CClientController::getInstance()->SendCommandPacket(3, TRUE, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
 
 	if (ret < 0) {
 		AfxMessageBox(TEXT("打开文件命令失败"));
@@ -567,23 +475,23 @@ afx_msg LRESULT CRCClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) {
 	{
 	case 4: {
 		CString filePath = (LPCTSTR)lParam;
-		ret = SendCommandPacket(cmd, a, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
+		ret = CClientController::getInstance()->SendCommandPacket(cmd, a, (BYTE*)(LPCTSTR)filePath, filePath.GetLength());
 		break;
 	}
 	case 5: {
-		ret = SendCommandPacket(cmd, a, (BYTE*)lParam, sizeof(MOUSEVENT));
+		ret = CClientController::getInstance()->SendCommandPacket(cmd, a, (BYTE*)lParam, sizeof(MOUSEVENT));
 		break;
 	}
 	case 6: {
-		ret = SendCommandPacket(cmd, a, NULL, 0);
+		ret = CClientController::getInstance()->SendCommandPacket(cmd, a, NULL, 0);
 		break;
 	}
 	case 7: {
-		ret = SendCommandPacket(cmd, a, NULL, 0);
+		ret = CClientController::getInstance()->SendCommandPacket(cmd, a, NULL, 0);
 		break;
 	}
 	case 8: {
-		ret = SendCommandPacket(cmd, a, NULL, 0);
+		ret = CClientController::getInstance()->SendCommandPacket(cmd, a, NULL, 0);
 		break;
 	}
 	default:
@@ -594,83 +502,10 @@ afx_msg LRESULT CRCClientDlg::OnSendPacket(WPARAM wParam, LPARAM lParam) {
 }
 
 
-void CRCClientDlg::ThreadEntryForWatchData(void* args) {
-	CRCClientDlg* pDlg = (CRCClientDlg*)args;
-
-	pDlg->ThreadWatchData();
-
-	_endthread();
-}
-
-void CRCClientDlg::ThreadWatchData() {
-	
-	Sleep(50);
-	CCliSocket* pClient = NULL;
-
-	do {
-		pClient = CCliSocket::getInstance();
-	} while (pClient == NULL);
-
-	//  InitSocket
-
-	ULONGLONG tick = GetTickCount64();
-
-	while (!m_IsDlgClosed) {
-		
-		while (m_IsFull) {
-			Sleep(35);
-		}
-
-		int ret = SendMessage(WM_SEND_PACKET, (6 << 1 | 1));
-		//
-		if (ret < 0) {
-			Sleep(500);
-		}
-		else {
-			//ret = pClient->dealRequest();
-			if (ret == 6 && !m_IsFull) {
-				//  TODO : 存入CImage
-				std::string data = pClient->getPkt().getStrData();	///////////////
-				
-				HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
-				if (hMem == NULL) {
-					TRACE(TEXT("内存不足"));
-					Sleep(500);
-					continue;
-				}
-				IStream* pStream = NULL;
-				HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
-				if (hRet == S_OK) {
-					ULONG length = 0;
-					pStream->Write(data.c_str(), data.size(), &length);
-					LARGE_INTEGER bg = {};
-					pStream->Seek(bg, STREAM_SEEK_SET, NULL);
-					if ((HBITMAP)m_image) {
-						m_image.Destroy();
-					}
-					m_image.Load(pStream);
-					m_IsFull = TRUE;
-					pStream->Release();
-					GlobalFree(hMem);
-				}
-			}
-		}
-
-	}
-
-}
-
 void CRCClientDlg::OnBnClickedBtnMonitor()
 {
 	// TODO: Add your control notification handler code here
-	m_IsDlgClosed = FALSE;
-	CMonitorDlg dlg(this);
-	HANDLE hThread = (HANDLE)_beginthread(CRCClientDlg::ThreadEntryForWatchData, 0, this);
-	//GetDlgItem(IDC_BTN_MONITOR)->EnableWindow(FALSE);
-	//  启动Dlg显示截图
-	dlg.DoModal();
-	m_IsDlgClosed = TRUE;
-	WaitForSingleObject(hThread, 1);
+	CClientController::getInstance()->OpenMonitor();
 }
 
 BOOL CRCClientDlg::getIsFull() const {
@@ -684,4 +519,26 @@ CImage& CRCClientDlg::getImage() {
 BOOL CRCClientDlg::SetIsFull(BOOL b) {
 	m_IsFull = b;
 	return TRUE;
+}
+
+void CRCClientDlg::OnIpnFieldchangedIpaddressSrv(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMIPADDRESS pIPAddr = reinterpret_cast<LPNMIPADDRESS>(pNMHDR);
+	// TODO: Add your control notification handler code here
+	UpdateData();
+	CClientController::getInstance()->UpdateAddress(m_addr_srv, atoi((LPCTSTR)m_port_srv));
+	*pResult = 0;
+}
+
+
+void CRCClientDlg::OnEnChangeEditPort()
+{
+	// TODO:  If this is a RICHEDIT control, the control will not
+	// send this notification unless you override the CDialogEx::OnInitDialog()
+	// function and call CRichEditCtrl().SetEventMask()
+	// with the ENM_CHANGE flag ORed into the mask.
+
+	// TODO:  Add your control notification handler code here
+	UpdateData();
+	CClientController::getInstance()->UpdateAddress(m_addr_srv, atoi((LPCTSTR)m_port_srv));
 }

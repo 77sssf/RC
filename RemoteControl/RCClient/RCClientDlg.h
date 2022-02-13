@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "CCliSock.h"
-#include "StatusDlg.h"
 #include "MonitorDlg.h"
+#include "RCClientDlg.h"
+#include "StatusDlg.h"
 
 #define WM_SEND_PACKET (WM_USER + 1)
 
@@ -38,13 +38,10 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
-	int SendCommandPacket(const int, BOOL autoClose = TRUE, const BYTE* = NULL, const int = 0);
 	CString GetPath(HTREEITEM hTreeItem);
 	void DeleteSelectChildItem(HTREEITEM hTreeSelected);
 	void LoadFileInfo();
 	void LoadFileCurrent();
-	static void ThreadEntryForDownloadFile(void* arg);
-	void ThreadDownloadFile();
 	
 	afx_msg LRESULT OnSendPacket(WPARAM wParam, LPARAM lParam);
 	
@@ -56,7 +53,7 @@ public:
 	CImage& getImage();
 	BOOL SetIsFull(BOOL b = false);
 private:
-	CStatusDlg m_statudDlg;
+	CStatusDlg m_statusDlg;
 	BOOL m_IsFull;
 	CImage m_image;
 	BOOL m_IsDlgClosed;
@@ -75,4 +72,6 @@ public:
 	afx_msg void OnDelete();
 	afx_msg void OnOpen();
 	afx_msg void OnBnClickedBtnMonitor();
+	afx_msg void OnIpnFieldchangedIpaddressSrv(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnEnChangeEditPort();
 };

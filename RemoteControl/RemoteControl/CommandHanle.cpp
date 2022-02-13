@@ -4,7 +4,7 @@
 CCommandHanle::CCommandHanle() : TID(0) {
 	struct {
 		int nCmd;
-		CMDFUNC func;
+		CMDFUNC pFunction;
 	}data[] = {
 		{1, &CCommandHanle::MakeDriverInfo},
 		{2, &CCommandHanle::MakeDirectoryInfo},
@@ -20,7 +20,7 @@ CCommandHanle::CCommandHanle() : TID(0) {
 	};
 
 	for (int i = 0; data[i].nCmd != -1; ++i) {
-		m_mapFunction.insert(std::pair<int, CMDFUNC>(data[i].nCmd, data[i].func));
+		m_mapFunction.insert(std::pair<int, CMDFUNC>(data[i].nCmd, data[i].pFunction));
 	}
 }
 

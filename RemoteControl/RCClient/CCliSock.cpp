@@ -41,7 +41,11 @@ std::string GetErrInfo(int wsaErrCode) {
 	return res;
 }
 
-CCliSocket::CCliSocket() : m_sockCli(INVALID_SOCKET), m_pkt() {
+CCliSocket::CCliSocket() 
+	: m_nIP(INADDR_ANY)
+	, m_nPort(0)	//  无效IP和PORT
+	, m_sockCli(INVALID_SOCKET)
+	, m_pkt() {
 	//printf("CliSock()\n");
 
 	if (!InitWSA()) {
@@ -72,7 +76,7 @@ BOOL CCliSocket::InitWSA() {
 	return TRUE;
 }
 
-BOOL CCliSocket::initSocket(const int nIP, const int nPort) {
+BOOL CCliSocket::initSocket() {
 	
 	if (m_sockCli != INVALID_SOCKET) {
 		closeSock();
@@ -90,9 +94,9 @@ BOOL CCliSocket::initSocket(const int nIP, const int nPort) {
 	//  服务端IP信息
 	SOCKADDR_IN addrSrv = {};
 	addrSrv.sin_family = AF_INET;
-	addrSrv.sin_addr.S_un.S_addr = htonl(nIP);
+	addrSrv.sin_addr.S_un.S_addr = htonl(m_nIP);
 
-	addrSrv.sin_port = htons(nPort);
+	addrSrv.sin_port = htons(m_nPort);
 
 	if (addrSrv.sin_addr.S_un.S_addr == INADDR_NONE) {
 		AfxMessageBox(TEXT("服务器IP地址不存在"));
@@ -166,4 +170,9 @@ BOOL CCliSocket::closeSock() {
 	closesocket(m_sockCli);
 	m_sockCli = INVALID_SOCKET;
 	return TRUE;
+}
+
+void CCliSocket::UpdateAddress(const int nIP, const int nPort) {
+	m_nIP = nIP;
+	m_nPort = nPort;
 }
