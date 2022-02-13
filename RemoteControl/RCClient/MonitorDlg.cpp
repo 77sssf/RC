@@ -124,8 +124,7 @@ void CMonitorDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 		CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 		MOUSEVENT mouseEvent(1, 0, remotePoint);
-		CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-		pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+		CClientController::getInstance()->SendCommandPacket(5, FALSE, (BYTE*)&mouseEvent, sizeof(MOUSEVENT));
 	}
 
 	CDialog::OnLButtonDblClk(nFlags, point);
@@ -139,8 +138,7 @@ void CMonitorDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 		MOUSEVENT mouseEvent(2, 0, remotePoint);
-		CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-		pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+		CClientController::getInstance()->SendCommandPacket(5, FALSE, (BYTE*)&mouseEvent, sizeof(MOUSEVENT));
 	}
 	
 	CDialog::OnLButtonDown(nFlags, point);
@@ -155,8 +153,7 @@ void CMonitorDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 		MOUSEVENT mouseEvent(3, 0, remotePoint);
-		CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-		pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+		CClientController::getInstance()->SendCommandPacket(5, FALSE, (BYTE*)&mouseEvent, sizeof(MOUSEVENT));
 	}
 
 	CDialog::OnLButtonUp(nFlags, point);
@@ -171,8 +168,7 @@ void CMonitorDlg::OnRButtonDblClk(UINT nFlags, CPoint point)
 		CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 		MOUSEVENT mouseEvent(1, 1, remotePoint);
-		CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-		pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+		CClientController::getInstance()->SendCommandPacket(5, FALSE, (BYTE*)&mouseEvent, sizeof(MOUSEVENT));
 	}
 
 	CDialog::OnRButtonDblClk(nFlags, point);
@@ -187,8 +183,7 @@ void CMonitorDlg::OnRButtonDown(UINT nFlags, CPoint point)
 		CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 		MOUSEVENT mouseEvent(2, 1, remotePoint);
-		CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-		pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+		CClientController::getInstance()->SendCommandPacket(5, FALSE, (BYTE*)&mouseEvent, sizeof(MOUSEVENT));
 	}
 
 	CDialog::OnRButtonDown(nFlags, point);
@@ -203,8 +198,7 @@ void CMonitorDlg::OnRButtonUp(UINT nFlags, CPoint point)
 		CPoint remotePoint = UserPoint2RemoteScreenPoint(point, FALSE);
 
 		MOUSEVENT mouseEvent(3, 1, remotePoint);
-		CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-		pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+		CClientController::getInstance()->SendCommandPacket(5, FALSE, (BYTE*)&mouseEvent, sizeof(MOUSEVENT));
 	}
 
 	CDialog::OnRButtonUp(nFlags, point);
@@ -237,8 +231,7 @@ void CMonitorDlg::OnStnClickedScreen()
 		CPoint remotePoint = UserPoint2RemoteScreenPoint(point, TRUE);
 
 		MOUSEVENT mouseEvent(0, 0, remotePoint);
-		CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-		pClientDlg->SendMessage(WM_SEND_PACKET, (5 << 1 | 1), (LPARAM)&mouseEvent);
+		CClientController::getInstance()->SendCommandPacket(5, TRUE, (BYTE*)&mouseEvent, sizeof(MOUSEVENT));
 	}
 }
 
@@ -254,14 +247,12 @@ void CMonitorDlg::OnOK()
 void CMonitorDlg::OnBnClickedBtnLock()
 {
 	// TODO: Add your control notification handler code here
-	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-	pClientDlg->SendMessage(WM_SEND_PACKET, (7 << 1 | 1));
+	CClientController::getInstance()->SendCommandPacket(7);
 }
 
 
 void CMonitorDlg::OnBnClickedBtnUnlock()
 {
 	// TODO: Add your control notification handler code here
-	CRCClientDlg* pClientDlg = (CRCClientDlg*)GetParent();
-	pClientDlg->SendMessage(WM_SEND_PACKET, (8 << 1 | 1));
+	CClientController::getInstance()->SendCommandPacket(8);
 }

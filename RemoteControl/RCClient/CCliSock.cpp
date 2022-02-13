@@ -126,24 +126,26 @@ int CCliSocket::dealRequest() {
 	//  命令
 	//  数据
 	//  校验
-	static size_t idx = 0;
+	static int idx = 0;
 	while (true) {
-		size_t len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
+		int len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
 		if (idx <= 0 && len <= 0) {
 			//  0 : 连接断开
 			//  1 : SOCKET_ERROR
 			return FALSE;
 		}
 
+		TRACE(_T("recv len : %u, idx : %u\r\n"), len, idx);
+
 		idx += len;
-		len = idx;
-		m_pkt = CPkt((BYTE*)buf, len);
+		len = idx;	// 有bug, 大bug, 不能确定, 两个线程使用一个buf
+		size_t tot = len;
+		m_pkt = CPkt((BYTE*)buf, tot);
 
 		//TRACE(TEXT("cli recv: %d, %s\r\n"), m_pkt.getCmd(), ((PFILEINFO)m_pkt.getStrData().c_str())->szFileName);
-
 		if (len > 0) {
-			memmove(buf, buf + len, BUF_SIZ - len);
-			idx -= len;
+			memmove(buf, buf + tot, BUF_SIZ - tot);
+			idx -= tot;
 			return m_pkt.getCmd();
 		}
 	}

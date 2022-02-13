@@ -45,8 +45,6 @@ public:
 	BOOL sendACK(const char*, int);
 	BOOL sendACK(const CPkt&);
 
-	BOOL getFilePath(std::string&);
-	BOOL getMouseEvent(MOUSEVENT&);
 	CPkt getPkt() const;
 	void UpdateAddress(const int nIP, const int nPort);
 	BOOL closeSock();

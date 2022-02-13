@@ -72,7 +72,7 @@ BOOL CRCClientApp::InitInstance()
 	// such as the name of your company or organization
 	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
 
-	CClientController::getInstance()->InitController();
+	CClientController::getInstance()->InitController();	//  µÚÒ»´Îgetinstance
 	INT_PTR nResponse = CClientController::getInstance()->Invoke(m_pMainWnd);
 // 	CRCClientDlg dlg;
 // 	m_pMainWnd = &dlg;

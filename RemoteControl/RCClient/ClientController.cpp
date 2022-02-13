@@ -127,10 +127,10 @@ BOOL CClientController::InitController() {
 }
 
 CClientController::CHelper::CHelper() {
-
+	//getInstance();  此时APP还未构造
 }
 CClientController::CHelper::~CHelper() {
-
+	releaseInstance();
 }
 
 void CClientController::UpdateAddress(const int nIP, const int nPort) {
