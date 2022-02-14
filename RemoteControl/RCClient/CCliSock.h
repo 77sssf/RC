@@ -42,13 +42,18 @@ public:
 
 	BOOL dealRequest();
 
-	BOOL sendACK(const char*, int);
-	BOOL sendACK(const CPkt&);
+	
 
 	CPkt getPkt() const;
 	void UpdateAddress(const int nIP, const int nPort);
 	BOOL closeSock();
+	BOOL sendPkt(const CPkt&, std::list<CPkt>&);
 private:
+	BOOL sendACK(const char*, int);
+	BOOL sendACK(const CPkt&);
+	static void CCliSocket::threadEntryForSocket(void* arg);
+
+	void CCliSocket::threadSocket();
 
 	CCliSocket();
 	~CCliSocket();
@@ -66,7 +71,10 @@ private:
 		CHelper();
 		~CHelper();
 	};
-	 
+
+	std::list<CPkt> m_listSend;
+	std::map<HANDLE, std::list<CPkt>> m_mapAck;
+
 	int m_nIP;
 	int m_nPort;
 	static CHelper m_helper;

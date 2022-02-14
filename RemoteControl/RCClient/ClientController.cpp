@@ -85,7 +85,7 @@ LRESULT CClientController::SendMessage(MSG& msg) {
 	}
 	MSGINFO msginfo(msg);
 	PostThreadMessage(m_nThreadID, WM_SEND_MESSAGE, (WPARAM)&msginfo, (LPARAM)hEvent);	//  PostThreadMessage不会等待
-	WaitForSingleObject(hEvent, INFINITE);
+	WaitForSingleObject(hEvent, 50);
 	return msginfo.result;
 }
 
@@ -93,13 +93,15 @@ LRESULT CClientController::SendMessage(MSG& msg) {
 LRESULT CClientController::OnSendPacket(UINT nMsg, WPARAM wParam, LPARAM lParam) {
 	CCliSocket* pSockCli = CCliSocket::getInstance();
 	CPkt* pPkt = (CPkt*)wParam;
-	return pSockCli->sendACK(*pPkt);
+	//return pSockCli->sendACK(*pPkt);
+	return LRESULT();
 }
 
 LRESULT CClientController::OnSendData(UINT nMsg, WPARAM wParam, LPARAM lParam) {
 	CCliSocket* pSockCli = CCliSocket::getInstance();
 	char* pBuffer = (char*)wParam;
-	return pSockCli->sendACK(pBuffer, (int)lParam);
+	//return pSockCli->sendACK(pBuffer, (int)lParam);
+	return LRESULT();
 }
 
 LRESULT CClientController::OnShowStatus(UINT nMsg, WPARAM wParam, LPARAM lParam) {
@@ -145,20 +147,26 @@ BOOL CClientController::closeSock() {
 	return CCliSocket::getInstance()->closeSock();
 }
 
-BOOL CClientController::SendPacket(const CPkt& pkt) {
+BOOL CClientController::SendPacket(const CPkt& pkt, std::list<CPkt>& lstRecved) {
 	CCliSocket* pSockCli = CCliSocket::getInstance();
-	pSockCli->initSocket();
-	pSockCli->sendACK(pkt);
+	pSockCli->sendPkt(pkt, lstRecved);
 	return TRUE;
 }
 
-BOOL CClientController::SendCommandPacket(const int nCmd, BOOL autoClose, const BYTE* pData, const int nLength) {
-	SendPacket(CPkt(nCmd, pData, nLength));
-	int cmd = DealRequest();
-	if (autoClose) {
-		closeSock();
+BOOL CClientController::SendCommandPacket(const int nCmd, BOOL autoClose, const BYTE* pData, const int nLength, std::list<CPkt>* plstRecved) {
+	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	std::list<CPkt> lstRecved;
+	if (plstRecved == NULL) {
+		plstRecved = &lstRecved;
 	}
-	return cmd;
+	SendPacket(CPkt(nCmd, pData, nLength, hEvent), *plstRecved);
+	if (plstRecved->size() > 0) {
+		
+		if (plstRecved->size() == 1) {
+			return plstRecved->front().getCmd();
+		}
+	}
+	return -1;
 }
 
 int CClientController::GetImage(CImage& img) {
@@ -255,7 +263,7 @@ int CClientController::OpenMonitor() {
 	//  启动Dlg显示截图
 	m_monitorDlg.DoModal();
 	m_IsDlgClosed = TRUE;
-	WaitForSingleObject(m_hThreadMonitor, INFINITE);
+	WaitForSingleObject(m_hThreadMonitor, 50);
 	return TRUE;
 }
 
@@ -271,8 +279,8 @@ void CClientController::ThreadWatchData() {
 		while (m_clientDlg.getIsFull() && !m_IsDlgClosed) {
 			Sleep(35);
 		}
-
-		int ret = SendCommandPacket(6);
+		std::list<CPkt> lstRecved;
+		int ret = SendCommandPacket(6, true, NULL, 0, &lstRecved);
 		//
 		if (ret < 0) {
 			Sleep(500);
@@ -281,7 +289,7 @@ void CClientController::ThreadWatchData() {
 			//ret = pClient->dealRequest();
 			if (ret == 6 && !m_clientDlg.getIsFull()) {
 				//  TODO : 存入CImage
-				if (GetImage(m_clientDlg.getImage())) {
+				if (CTool::Bytes2Image(m_clientDlg.getImage(), lstRecved.front().getStrData())) {
 					m_clientDlg.SetIsFull(TRUE);
 				}
 				else {

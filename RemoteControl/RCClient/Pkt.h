@@ -10,7 +10,7 @@ class CPkt
 public:
 
 	CPkt();
-	CPkt(WORD, const BYTE*, size_t);
+	CPkt(WORD, const BYTE*, size_t, HANDLE hEvent);
 	CPkt(const CPkt& rhs);
 	CPkt& operator=(const CPkt& rhs);
 	CPkt(const BYTE* pData, size_t& nSize);
@@ -23,11 +23,15 @@ public:
 	const char* getData() const;
 	std::string getStrData() const;
 
+public:
+	HANDLE m_hEvnet;
+
 private:
 
 	void calcData();
 
 private:
+
 
 	WORD sHead;	//  包头固定FFFE
 	DWORD nLength;	//  包长度(从控制命令开始到和校验结束)

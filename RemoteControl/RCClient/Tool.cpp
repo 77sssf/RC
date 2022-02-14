@@ -4,12 +4,12 @@ void CTool::Dump(BYTE* pData, size_t nSize) {
 
 }
 
-void CTool::Bytes2Image(CImage& image, const std::string& data) {
+BOOL CTool::Bytes2Image(CImage& image, const std::string& data) {
 	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
 	if (hMem == NULL) {
 		TRACE(TEXT("ÄÚ´æ²»×ã"));
 		Sleep(500);
-		return;
+		return FALSE;
 	}
 	IStream* pStream = NULL;
 	HRESULT hRet = CreateStreamOnHGlobal(hMem, TRUE, &pStream);
@@ -24,5 +24,7 @@ void CTool::Bytes2Image(CImage& image, const std::string& data) {
 		image.Load(pStream);						//  memory to image
 		pStream->Release();
 		GlobalFree(hMem);
+		return TRUE;
 	}
+	return FALSE;
 }

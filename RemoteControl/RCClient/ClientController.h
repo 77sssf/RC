@@ -12,6 +12,7 @@
 #include "RCClientDlg.h"
 #include "StatusDlg.h"
 #include <map>
+#include <list>
 
 class CClientController
 {
@@ -35,13 +36,14 @@ public:
 
 	BOOL closeSock();
 
-	BOOL SendPacket(const CPkt& pkt);
+	BOOL SendPacket(const CPkt& pkt, std::list<CPkt>& lstRecved);
 
-	BOOL SendCommandPacket(const int nCmd, BOOL autoClose = TRUE, const BYTE* pData = NULL, const int nLength = 0);
+	BOOL SendCommandPacket(const int nCmd, BOOL autoClose = TRUE, const BYTE* pData = NULL, const int nLength = 0, std::list<CPkt>* plstRecved = NULL);
 
 	int GetImage(CImage& img);
 	int DownloadFile(CString remoteFilePath, CString localFilePath);
 	int OpenMonitor();
+
 private:
 	CClientController();
 	~CClientController();

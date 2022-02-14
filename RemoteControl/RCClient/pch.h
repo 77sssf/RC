@@ -17,6 +17,7 @@
 #include "RCClientDlg.h"
 #include "StatusDlg.h"
 #include <map>
+#include <list>
 #include <string>
 #include "resource.h"
 #include "Tool.h"

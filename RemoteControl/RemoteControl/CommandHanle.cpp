@@ -283,7 +283,7 @@ BOOL CCommandHanle::SendScreen(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 
 	HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, 0);
 	if (hMem == NULL) {
-
+		return FALSE;
 	}
 	IStream* pStream = NULL;
 
@@ -297,7 +297,7 @@ BOOL CCommandHanle::SendScreen(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 			//
 		}
 		SIZE_T nSize = GlobalSize(hMem);
-		lstPkt.push_back(CPkt(6, pData, nSize));	// 如果pData过大接收端会出问题, 因为客户端recv一次接收4K
+		lstPkt.push_back(CPkt(6, pData, nSize));	//  如果pData过大接收端会出问题, 因为客户端recv一次接收4K
 		GlobalUnlock(hMem);
 	}
 

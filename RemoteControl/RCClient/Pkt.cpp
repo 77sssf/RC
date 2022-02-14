@@ -6,7 +6,7 @@ CPkt::CPkt() : sHead(0), nLength(0), sCmd(0), sSum(0) {
 
 }
 
-CPkt::CPkt(const BYTE* pData, size_t& nSize) : sHead(0), nLength(0), sCmd(0), sSum(0) {
+CPkt::CPkt(const BYTE* pData, size_t& nSize) : m_hEvnet(INVALID_HANDLE_VALUE),  sHead(0), nLength(0), sCmd(0), sSum(0) {
 	size_t i = 0;
 	for (i = 0; i < nSize; ++i) {
 		if (*((WORD*)(pData + i)) == 0xFFFE) {
@@ -54,17 +54,17 @@ CPkt::CPkt(const BYTE* pData, size_t& nSize) : sHead(0), nLength(0), sCmd(0), sS
 	calcData();
 }
 
-CPkt::CPkt(const CPkt& rhs) {
+CPkt::CPkt(const CPkt& rhs) : m_hEvnet(INVALID_HANDLE_VALUE), sHead(0), nLength(0), sCmd(0), sSum(0) {
 	sHead = rhs.sHead;
 	nLength = rhs.nLength;
 	sCmd = rhs.sCmd;
 	strData = rhs.strData;
 	sSum = rhs.sSum;
-
+	m_hEvnet = rhs.m_hEvnet;
 	calcData();
 }
 
-CPkt::CPkt(WORD cmd, const BYTE* pData, size_t nSize) : sHead(0), nLength(0), sCmd(0), sSum(0) {
+CPkt::CPkt(WORD cmd, const BYTE* pData, size_t nSize, HANDLE hEvent) : m_hEvnet(INVALID_HANDLE_VALUE), sHead(0), nLength(0), sCmd(0), sSum(0) {
 	sHead = 0xFFFE;
 	nLength = nSize + 2 + 2;
 	sCmd = cmd;
@@ -80,6 +80,7 @@ CPkt::CPkt(WORD cmd, const BYTE* pData, size_t nSize) : sHead(0), nLength(0), sC
 	for (size_t j = 0; j < strData.size(); ++j) {
 		sSum += (BYTE)strData[j];
 	}
+	m_hEvnet = hEvent;
 	calcData();
 }
 
@@ -89,6 +90,7 @@ CPkt& CPkt::operator=(const CPkt& rhs) {
 	sCmd = rhs.sCmd;
 	strData = rhs.strData;
 	sSum = rhs.sSum;
+	m_hEvnet = rhs.m_hEvnet;
 	calcData();
 	return *this;
 }

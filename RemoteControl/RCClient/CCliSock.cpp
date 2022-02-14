@@ -121,11 +121,12 @@ int CCliSocket::dealRequest() {
 	char* buf = m_buf.data();
 	//memset(buf, 0, BUF_SIZ);
 
-	//  包头 FFFE
-	//  长度
-	//  命令
-	//  数据
-	//  校验
+	//  WORD	包头 FFFE
+	//  DWORD	长度
+	//  WORD	命令
+	//  string	数据
+	//  WORD	校验
+
 	static int idx = 0;
 	while (true) {
 		int len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
@@ -177,4 +178,68 @@ BOOL CCliSocket::closeSock() {
 void CCliSocket::UpdateAddress(const int nIP, const int nPort) {
 	m_nIP = nIP;
 	m_nPort = nPort;
+}
+
+void CCliSocket::threadEntryForSocket(void* arg) {
+	((CCliSocket*)arg)->threadSocket();
+	_endthread();
+}
+
+void CCliSocket::threadSocket() {
+
+	std::string strBuffer;
+	strBuffer.resize(BUF_SIZ);
+	char* pBuf = (char*)strBuffer.c_str();
+	int idx = 0;
+	while (m_sockCli != INVALID_SOCKET) {
+		TRACE("m_listSend.size() : %d \r\n", m_listSend.size());
+		if (m_listSend.size() > 0) {
+			CPkt& head = m_listSend.front();	//  head 客服端发送的包
+			sendACK(head);
+
+			auto pr = m_mapAck.insert(std::pair<HANDLE, std::list<CPkt>>(head.m_hEvnet, std::list<CPkt>()));
+
+			std::list<CPkt> lstRecv;
+			int len = recv(m_sockCli, pBuf + idx, BUF_SIZ - idx, 0);
+			if (len <= 0 && idx <= 0) {
+				closeSock();
+				continue;
+			}
+
+			idx += len;
+			size_t size = (size_t)idx;
+			CPkt pkt((BYTE*)pBuf, size);	//  从服务器接收的包
+			
+			if (size > 0) {
+				//  TODO : 通知对应cmd
+				pkt.m_hEvnet = head.m_hEvnet;
+				pr.first->second.push_back(pkt);
+				SetEvent(head.m_hEvnet);
+
+			}
+			m_listSend.pop_front();
+		}
+		closeSock();
+	}
+}
+
+BOOL CCliSocket::sendPkt(const CPkt& pkt, std::list<CPkt>& lstRecved) {
+	m_listSend.push_back(pkt);
+	if (m_sockCli == INVALID_SOCKET) {
+		initSocket();
+		_beginthread(threadEntryForSocket, 0, this);
+	}
+	WaitForSingleObject(pkt.m_hEvnet, 50);
+	std::map<HANDLE, std::list<CPkt>>::iterator itm = m_mapAck.find(pkt.m_hEvnet);
+	if (itm == m_mapAck.end()) {
+		return FALSE;
+	}
+	//  遍历 lstSend
+// 	for (std::list<CPkt>::iterator itl = itm->second.begin(); itl != itm->second.end(); ++itl) {
+// 		//  itl : CPkt*
+// 
+// 	}
+	lstRecved = itm->second;
+	m_mapAck.erase(itm);
+	return TRUE;
 }
