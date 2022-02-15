@@ -36,11 +36,13 @@ public:
 
 	BOOL closeSock();
 
-	BOOL SendPacket(const CPkt& pkt, std::list<CPkt>& lstRecved);
+	BOOL SendPacket(const CPkt& pkt, std::list<CPkt>& lstRecved, BOOL autoClose = TRUE);
 
 	BOOL SendCommandPacket(const int nCmd, BOOL autoClose = TRUE, const BYTE* pData = NULL, const int nLength = 0, std::list<CPkt>* plstRecved = NULL);
 
 	int GetImage(CImage& img);
+	BOOL getIsFull() const ;
+	BOOL SetIsFull(BOOL b);
 	int DownloadFile(CString remoteFilePath, CString localFilePath);
 	int OpenMonitor();
 

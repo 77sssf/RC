@@ -47,7 +47,7 @@ public:
 	CPkt getPkt() const;
 	void UpdateAddress(const int nIP, const int nPort);
 	BOOL closeSock();
-	BOOL sendPkt(const CPkt&, std::list<CPkt>&);
+	BOOL sendPkt(const CPkt&, std::list<CPkt>&, BOOL = TRUE);
 private:
 	BOOL sendACK(const char*, int);
 	BOOL sendACK(const CPkt&);
@@ -73,8 +73,9 @@ private:
 	};
 
 	std::list<CPkt> m_listSend;
-	std::map<HANDLE, std::list<CPkt>> m_mapAck;
-
+	std::map<HANDLE, std::list<CPkt>&> m_mapAck;
+	std::map<HANDLE, BOOL> m_mapAutoClose;
+	bool m_bAutoClose;
 	int m_nIP;
 	int m_nPort;
 	static CHelper m_helper;

@@ -42,7 +42,7 @@ public:
 	DWORD getLength()const;
 	const char* getData() const;
 	std::string getStrData() const;
-
+	size_t size() const ;
 private:
 
 	void calcData();

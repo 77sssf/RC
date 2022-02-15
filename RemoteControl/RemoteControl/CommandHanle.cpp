@@ -297,6 +297,7 @@ BOOL CCommandHanle::SendScreen(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 			//
 		}
 		SIZE_T nSize = GlobalSize(hMem);
+		//TRACE("send screen size : %d\r\n", nSize);
 		lstPkt.push_back(CPkt(6, pData, nSize));	//  如果pData过大接收端会出问题, 因为客户端recv一次接收4K
 		GlobalUnlock(hMem);
 	}

@@ -24,28 +24,29 @@ CCliSocket::CHelper::~CHelper() {
 	CCliSocket::releaseInstance();
 }
 
-std::string GetErrInfo(int wsaErrCode) {
-	std::string res;
-	LPVOID lpMsgBuf = NULL;
-	FormatMessage(
-		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, 
-		NULL, 
-		wsaErrCode, 
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
-		(LPTSTR)lpMsgBuf, 
-		0, 
-		NULL
-	);
-	res = (char*)lpMsgBuf;	//  宽字节转char* 应该会有问题
-	LocalFree(lpMsgBuf);
-	return res;
-}
+// std::string GetErrInfo(int wsaErrCode) {
+// 	std::string res;
+// 	LPVOID lpMsgBuf = NULL;
+// 	FormatMessage(
+// 		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, 
+// 		NULL, 
+// 		wsaErrCode, 
+// 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+// 		(LPTSTR)lpMsgBuf, 
+// 		0, 
+// 		NULL
+// 	);
+// 	res = (char*)lpMsgBuf;	//  宽字节转char* 应该会有问题
+// 	LocalFree(lpMsgBuf);
+// 	return res;
+// }
 
 CCliSocket::CCliSocket() 
 	: m_nIP(INADDR_ANY)
 	, m_nPort(0)	//  无效IP和PORT
 	, m_sockCli(INVALID_SOCKET)
-	, m_pkt() {
+	, m_pkt()
+	, m_bAutoClose(TRUE) {
 	//printf("CliSock()\n");
 
 	if (!InitWSA()) {
@@ -53,6 +54,10 @@ CCliSocket::CCliSocket()
 		exit(0);
 	}
 	m_buf.resize(BUF_SIZ);
+
+	if (m_sockCli == INVALID_SOCKET) {
+		_beginthread(threadEntryForSocket, 0, this);	//  保证线程只启动一次
+	}
 }
 
 CCliSocket::CCliSocket(const CCliSocket&) : m_sockCli(INVALID_SOCKET), m_pkt() {
@@ -84,12 +89,10 @@ BOOL CCliSocket::initSocket() {
 
 	m_sockCli = socket(PF_INET, SOCK_STREAM, 0);
 	if (m_sockCli == INVALID_SOCKET) {
-		//  TODO : 初始化失败
+		TRACE(TEXT("socket()失败 : %d \r\n"), WSAGetLastError());
+		exit(-1);
 		return FALSE;
 	}
-
-	int opt_val = 1;
-	setsockopt(m_sockCli, IPPROTO_TCP, TCP_NODELAY, (char*)&opt_val, sizeof(opt_val));
 
 	//  服务端IP信息
 	SOCKADDR_IN addrSrv = {};
@@ -104,10 +107,11 @@ BOOL CCliSocket::initSocket() {
 	}
 
 	if (connect(m_sockCli, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR)) == SOCKET_ERROR) {
-		AfxMessageBox(TEXT("连接服务器失败"));
-		TRACE(TEXT("连接失败 : %d %s\r\n"), WSAGetLastError(), GetErrInfo(WSAGetLastError()).c_str());
+		TRACE(TEXT("连接服务器失败 : %d \r\n"), WSAGetLastError());
+		exit(-1);
 		return FALSE;
 	}
+	
 
 	m_buf.clear();
 	m_buf.resize(BUF_SIZ);
@@ -187,59 +191,84 @@ void CCliSocket::threadEntryForSocket(void* arg) {
 
 void CCliSocket::threadSocket() {
 
-	std::string strBuffer;
-	strBuffer.resize(BUF_SIZ);
-	char* pBuf = (char*)strBuffer.c_str();
+// 	std::string strBuffer;
+// 	strBuffer.resize(BUF_SIZ);
+// 	char* pBuf = (char*)strBuffer.c_str();
+	char* buf = m_buf.data();
 	int idx = 0;
-	while (m_sockCli != INVALID_SOCKET) {
+	while (TRUE) {
 		TRACE("m_listSend.size() : %d \r\n", m_listSend.size());
 		if (m_listSend.size() > 0) {
+			initSocket();
+			TRACE("m_client = %d\r\n", m_sockCli);
 			CPkt& head = m_listSend.front();	//  head 客服端发送的包
 			sendACK(head);
-
-			auto pr = m_mapAck.insert(std::pair<HANDLE, std::list<CPkt>>(head.m_hEvnet, std::list<CPkt>()));
-
-			std::list<CPkt> lstRecv;
-			int len = recv(m_sockCli, pBuf + idx, BUF_SIZ - idx, 0);
-			if (len <= 0 && idx <= 0) {
-				closeSock();
-				continue;
-			}
-
-			idx += len;
-			size_t size = (size_t)idx;
-			CPkt pkt((BYTE*)pBuf, size);	//  从服务器接收的包
 			
-			if (size > 0) {
-				//  TODO : 通知对应cmd
-				pkt.m_hEvnet = head.m_hEvnet;
-				pr.first->second.push_back(pkt);
+			std::map<HANDLE, BOOL>::iterator it0 = m_mapAutoClose.find(head.m_hEvnet);
+			std::map<HANDLE, std::list<CPkt>&>::iterator it1 = m_mapAck.find(head.m_hEvnet);
+			
+			if (it0 == m_mapAutoClose.end() || it1 == m_mapAck.end()) {
+				m_listSend.pop_front();
 				SetEvent(head.m_hEvnet);
-
+				break;
 			}
+
+			do {
+				int len = recv(m_sockCli, buf + idx, BUF_SIZ - idx, 0);
+				TRACE("len = %d, idx = %d\r\n", len, idx);
+				if (len <= 0 && idx <= 0) {
+					TRACE("解析完成\r\n");
+					SetEvent(head.m_hEvnet);	//  连接关闭， 数据全部处理完
+					closeSock();
+					break;
+				}
+
+				idx += len;
+				size_t size = (size_t)idx;
+				CPkt pkt((BYTE*)buf, size, head.m_hEvnet);	//  从服务器接收的包
+
+				if (size > 0) {
+					//  TODO : 通知对应cmd
+					memmove(buf, buf + size, BUF_SIZ - size);
+					idx -= size;
+					it1->second.push_back(pkt);
+					TRACE("thread map size = %d\r\n", m_mapAck.size());
+					if (it0->second == TRUE) {
+						SetEvent(head.m_hEvnet);
+						break;
+					}
+				}
+				TRACE("socket thread ID : %d\r\n", GetCurrentThreadId());
+				TRACE("lstRecved.size() : %d \r\n", it1->second.size());
+			} while (it0->second == FALSE);
+
 			m_listSend.pop_front();
+		}
+		else {
+			Sleep(30);
 		}
 		closeSock();
 	}
+	return;
 }
 
-BOOL CCliSocket::sendPkt(const CPkt& pkt, std::list<CPkt>& lstRecved) {
+BOOL CCliSocket::sendPkt(const CPkt& pkt, std::list<CPkt>& lstRecved, BOOL autoClose) {
 	m_listSend.push_back(pkt);
-	if (m_sockCli == INVALID_SOCKET) {
-		initSocket();
-		_beginthread(threadEntryForSocket, 0, this);
-	}
-	WaitForSingleObject(pkt.m_hEvnet, 50);
-	std::map<HANDLE, std::list<CPkt>>::iterator itm = m_mapAck.find(pkt.m_hEvnet);
-	if (itm == m_mapAck.end()) {
+	m_mapAutoClose.insert(std::pair<HANDLE, BOOL>(pkt.m_hEvnet, autoClose));
+	m_mapAck.insert(std::pair<HANDLE, std::list<CPkt>&>(pkt.m_hEvnet, lstRecved));
+	WaitForSingleObject(pkt.m_hEvnet, INFINITE);
+
+	std::map<HANDLE, BOOL>::iterator it0 = m_mapAutoClose.find(pkt.m_hEvnet);
+	std::map<HANDLE, std::list<CPkt>&>::iterator it1 = m_mapAck.find(pkt.m_hEvnet);
+
+	TRACE("triger time : %lld\r\n", GetTickCount64());
+	TRACE("main thread ID : %d\r\n", GetCurrentThreadId());
+	TRACE("main map size = %d\r\n", m_mapAck.size());
+	TRACE("lstRecved.size() : %d \r\n", lstRecved.size());
+	if (it1 == m_mapAck.end()) {
 		return FALSE;
 	}
-	//  遍历 lstSend
-// 	for (std::list<CPkt>::iterator itl = itm->second.begin(); itl != itm->second.end(); ++itl) {
-// 		//  itl : CPkt*
-// 
-// 	}
-	lstRecved = itm->second;
-	m_mapAck.erase(itm);
+	m_mapAutoClose.erase(it0);
+	m_mapAck.erase(it1);
 	return TRUE;
 }

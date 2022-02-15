@@ -6,7 +6,7 @@ CPkt::CPkt() : sHead(0), nLength(0), sCmd(0), sSum(0) {
 
 }
 
-CPkt::CPkt(const BYTE* pData, size_t& nSize) : m_hEvnet(INVALID_HANDLE_VALUE),  sHead(0), nLength(0), sCmd(0), sSum(0) {
+CPkt::CPkt(const BYTE* pData, size_t& nSize, HANDLE hEvent) : m_hEvnet(hEvent),  sHead(0), nLength(0), sCmd(0), sSum(0) {
 	size_t i = 0;
 	for (i = 0; i < nSize; ++i) {
 		if (*((WORD*)(pData + i)) == 0xFFFE) {
@@ -64,7 +64,7 @@ CPkt::CPkt(const CPkt& rhs) : m_hEvnet(INVALID_HANDLE_VALUE), sHead(0), nLength(
 	calcData();
 }
 
-CPkt::CPkt(WORD cmd, const BYTE* pData, size_t nSize, HANDLE hEvent) : m_hEvnet(INVALID_HANDLE_VALUE), sHead(0), nLength(0), sCmd(0), sSum(0) {
+CPkt::CPkt(WORD cmd, const BYTE* pData, size_t nSize, HANDLE hEvent) : m_hEvnet(hEvent), sHead(0), nLength(0), sCmd(0), sSum(0) {
 	sHead = 0xFFFE;
 	nLength = nSize + 2 + 2;
 	sCmd = cmd;
@@ -80,7 +80,6 @@ CPkt::CPkt(WORD cmd, const BYTE* pData, size_t nSize, HANDLE hEvent) : m_hEvnet(
 	for (size_t j = 0; j < strData.size(); ++j) {
 		sSum += (BYTE)strData[j];
 	}
-	m_hEvnet = hEvent;
 	calcData();
 }
 
@@ -128,4 +127,14 @@ void CPkt::calcData() {
 	*(WORD*)pData = sSum;
 
 	//return str.c_str();		//  BUG : 返回局部变量的地址
+}
+
+size_t CPkt::size() const {
+	// 	WORD sHead;	//  包头固定FFFE
+	// 	DWORD nLength;	//  包长度(从控制命令开始到和校验结束)
+	// 	WORD sCmd;
+	// 	std::string strData;
+	// 	std::string strRes;
+	// 	WORD sSum;	//  和校验值
+	return (sizeof(WORD) + sizeof(DWORD) + sizeof(WORD) + strData.size() + sizeof(WORD));
 }

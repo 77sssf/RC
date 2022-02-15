@@ -85,7 +85,8 @@ LRESULT CClientController::SendMessage(MSG& msg) {
 	}
 	MSGINFO msginfo(msg);
 	PostThreadMessage(m_nThreadID, WM_SEND_MESSAGE, (WPARAM)&msginfo, (LPARAM)hEvent);	//  PostThreadMessage不会等待
-	WaitForSingleObject(hEvent, 50);
+	WaitForSingleObject(hEvent, INFINITE);
+	CloseHandle(hEvent);
 	return msginfo.result;
 }
 
@@ -147,9 +148,8 @@ BOOL CClientController::closeSock() {
 	return CCliSocket::getInstance()->closeSock();
 }
 
-BOOL CClientController::SendPacket(const CPkt& pkt, std::list<CPkt>& lstRecved) {
-	CCliSocket* pSockCli = CCliSocket::getInstance();
-	pSockCli->sendPkt(pkt, lstRecved);
+BOOL CClientController::SendPacket(const CPkt& pkt, std::list<CPkt>& lstRecved, BOOL autoClose) {
+	CCliSocket::getInstance()->sendPkt(pkt, lstRecved, autoClose);
 	return TRUE;
 }
 
@@ -159,22 +159,20 @@ BOOL CClientController::SendCommandPacket(const int nCmd, BOOL autoClose, const 
 	if (plstRecved == NULL) {
 		plstRecved = &lstRecved;
 	}
-	SendPacket(CPkt(nCmd, pData, nLength, hEvent), *plstRecved);
+	SendPacket(CPkt(nCmd, pData, nLength, hEvent), *plstRecved, autoClose);
 	if (plstRecved->size() > 0) {
 		
 		if (plstRecved->size() == 1) {
+			CloseHandle(hEvent);
 			return plstRecved->front().getCmd();
 		}
 	}
+	CloseHandle(hEvent);
 	return -1;
 }
 
 int CClientController::GetImage(CImage& img) {
-
-	CCliSocket* pClient = CCliSocket::getInstance();
-	std::string data = pClient->getPkt().getStrData();	///////////////
-
-	CTool::Bytes2Image(img, data);
+	img = m_clientDlg.getImage();
 	return TRUE;
 }
 
@@ -290,7 +288,8 @@ void CClientController::ThreadWatchData() {
 			if (ret == 6 && !m_clientDlg.getIsFull()) {
 				//  TODO : 存入CImage
 				if (CTool::Bytes2Image(m_clientDlg.getImage(), lstRecved.front().getStrData())) {
-					m_clientDlg.SetIsFull(TRUE);
+					SetIsFull(TRUE);
+					lstRecved.pop_front();
 				}
 				else {
 					TRACE(TEXT("failed to load image\r\n"));
@@ -298,4 +297,13 @@ void CClientController::ThreadWatchData() {
 			}
 		}
 	}
+}
+
+BOOL CClientController::getIsFull() const {
+	return m_clientDlg.getIsFull();
+}
+
+BOOL CClientController::SetIsFull(BOOL b) {
+	m_clientDlg.SetIsFull(b);
+	return TRUE;
 }

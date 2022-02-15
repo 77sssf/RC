@@ -201,13 +201,13 @@ void CRCClientDlg::OnTvnSelchangedTree1(NMHDR* pNMHDR, LRESULT* pResult)
 void CRCClientDlg::OnBnClickedBtnFileinfo()
 {
 	// TODO: Add your control notification handler code here
-	CCliSocket* pSockCli = CCliSocket::getInstance();
-	int ret = CClientController::getInstance()->SendCommandPacket(1);
-	if (ret == -1) {
+	std::list<CPkt> lstRecved;
+	int ret = CClientController::getInstance()->SendCommandPacket(1, TRUE, NULL, 0, &lstRecved);
+	if (ret == -1 || lstRecved.size() < 0) {
 		AfxMessageBox(TEXT("OnBnClickedBtnFileinfo()"));
 		return;
 	}
-	std::string drivers = pSockCli->getPkt().getStrData();
+	std::string drivers = lstRecved.front().getStrData();
 	std::string td;
 	m_tree.DeleteAllItems();
 	for (size_t i = 0; i < drivers.size(); ++i) {
@@ -265,16 +265,17 @@ void CRCClientDlg::LoadFileInfo() {
 	DeleteSelectChildItem(hTreeSelected);
 	m_list.DeleteAllItems();
 
-	CCliSocket* pSockCli = CCliSocket::getInstance();
 	CString strPath = GetPath(hTreeSelected);
-	int nCmd = CClientController::getInstance()->SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)strPath, strPath.GetLength());
+	std::list<CPkt> lstRecved;
+	int nCmd = CClientController::getInstance()->SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)strPath, strPath.GetLength(), &lstRecved);
 	if (nCmd == -1) {
 
 	}
 
 	BOOL Insert = TRUE;
 	//PFILEINFO pInfo = (PFILEINFO)pSockCli->getPkt().getStrData().c_str();	//  指向临时对象
-	std::string t = pSockCli->getPkt().getStrData();
+	std::string t = lstRecved.front().getStrData();
+	lstRecved.pop_front();
 	FILEINFO fInfo = {};
 	memcpy(&fInfo, t.c_str(), t.size());
 
@@ -305,9 +306,9 @@ void CRCClientDlg::LoadFileInfo() {
 			}
 		}
 
-		CClientController::getInstance()->DealRequest();
 
-		t = pSockCli->getPkt().getStrData();
+		t = lstRecved.front().getStrData();
+		lstRecved.pop_front();
 		fInfo = {};
 		memcpy(&fInfo, t.c_str(), t.size());
 		Insert = TRUE;

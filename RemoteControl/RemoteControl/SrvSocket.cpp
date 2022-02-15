@@ -114,6 +114,7 @@ BOOL CSrvSocket::Run(SOCK_CALLBACK callback, void* arg, short sPort) {
 			m_callback(m_arg, ret, lstPkt, m_pkt);	//  将第一个包传递
 			//  send
 			while (lstPkt.size() > 0) {
+				TRACE("server send size : %d\r\n", lstPkt.front().size());
 				sendACK(lstPkt.front());
 				lstPkt.pop_front();
 			}
