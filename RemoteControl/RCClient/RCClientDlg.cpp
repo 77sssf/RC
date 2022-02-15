@@ -269,11 +269,14 @@ void CRCClientDlg::LoadFileInfo() {
 	std::list<CPkt> lstRecved;
 	int nCmd = CClientController::getInstance()->SendCommandPacket(2, FALSE, (const BYTE*)(LPCTSTR)strPath, strPath.GetLength(), &lstRecved);
 	if (nCmd == -1) {
-
+		//
 	}
 
 	BOOL Insert = TRUE;
-	//PFILEINFO pInfo = (PFILEINFO)pSockCli->getPkt().getStrData().c_str();	//  指向临时对象
+	if (lstRecved.size() == 0) {
+		CClientController::getInstance()->closeSock();
+		return;
+	}
 	std::string t = lstRecved.front().getStrData();
 	lstRecved.pop_front();
 	FILEINFO fInfo = {};
@@ -306,7 +309,9 @@ void CRCClientDlg::LoadFileInfo() {
 			}
 		}
 
-
+		if (lstRecved.size() == 0) {
+			break;
+		}
 		t = lstRecved.front().getStrData();
 		lstRecved.pop_front();
 		fInfo = {};

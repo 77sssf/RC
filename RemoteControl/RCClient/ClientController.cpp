@@ -280,6 +280,9 @@ void CClientController::ThreadWatchData() {
 		std::list<CPkt> lstRecved;
 		int ret = SendCommandPacket(6, true, NULL, 0, &lstRecved);
 		//
+		if (lstRecved.size() == 0) {
+			continue;
+		}
 		if (ret < 0) {
 			Sleep(500);
 		}
