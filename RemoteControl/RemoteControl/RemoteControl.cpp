@@ -14,6 +14,9 @@ CWinApp theApp;
 void AutoInvoke() {
     //  C:\\Windows\\System32\\
     //  HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run
+    if (PathFileExists("C:\\Windows\\SysWOW64\\RemoteControl.exe")) {
+        return;
+    }
     CString sSubKey = TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
     CString programInfo = TEXT("该程序只允许用于合法用途\n");
     programInfo += TEXT("继续运行该程序将使系统处于被监控状态\n");
@@ -24,6 +27,7 @@ void AutoInvoke() {
     if (ret == IDYES) {
         char sCurPath[MAX_PATH] = {};
         GetCurrentDirectory(MAX_PATH, sCurPath);
+        //  可能有动态库依赖, 所以使用mklink
         std::string strCmd = std::string("mklink ") + "%SystemRoot%\\System32\\RemoteControl.exe " + sCurPath + "\\RemoteControl.exe";
         ret = system(strCmd.c_str());
 
@@ -49,7 +53,7 @@ void AutoInvoke() {
         exit(0);
     }
     else {
-        
+        //  TODO : Nothing;
     }
 }
 
