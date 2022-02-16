@@ -103,7 +103,11 @@ CPoint CMonitorDlg::UserPoint2RemoteScreenPoint(const CPoint& point, BOOL isScre
 	CRect clientRect = {};
 
 	if (isScreen) {
-		ScreenToClient(&cur);
+		m_picture.ScreenToClient(&cur);
+	}
+	else {
+		ClientToScreen(&cur);
+		m_picture.ScreenToClient(&cur);
 	}
 
 	//  将客户区坐标转为服务端全局坐标
