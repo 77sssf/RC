@@ -53,7 +53,7 @@ BOOL CMonitorDlg::OnInitDialog()
 
 	// TODO:  Add extra initialization here
 
-	SetTimer(0, 30, NULL);
+	SetTimer(0, 50, NULL);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // EXCEPTION: OCX Property Pages should return FALSE

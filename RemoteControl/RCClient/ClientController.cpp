@@ -42,8 +42,7 @@ CClientController::CClientController()
 }
 
 unsigned __stdcall CClientController::threadEntry(void* arg) {
-	CClientController* pCliController = (CClientController*)arg;
-	pCliController->threadProc();
+	((CClientController*)arg)->threadProc();
 	_endthreadex(0);
 	return 0;
 }
@@ -265,7 +264,7 @@ int CClientController::OpenMonitor() {
 	//  ∆Ù∂ØDlgœ‘ æΩÿÕº
 	m_monitorDlg.DoModal();
 	m_IsDlgClosed = TRUE;
-	WaitForSingleObject(m_hThreadMonitor, 50);
+	WaitForSingleObject(m_hThreadMonitor, INFINITE);
 	return TRUE;
 }
 
@@ -276,8 +275,12 @@ void CClientController::ThreadEntryForWatchData(void* args) {
 
 void CClientController::ThreadWatchData() {
 	Sleep(50);
+	ULONGLONG tick = GetTickCount64();
 	while (!m_IsDlgClosed) {
-
+		if (GetTickCount64() - tick < 50) {
+			Sleep(50 - (DWORD)(GetTickCount64() - tick));
+			tick = GetTickCount64();
+		}
 		while (m_clientDlg.getIsFull() && !m_IsDlgClosed) {
 			Sleep(35);
 		}

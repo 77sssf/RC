@@ -4,8 +4,10 @@
 /RemoteControl/Debug
 /RemoteControl/RCClient/x64
 /RemoteControl/RCClient/Debug
+/RemoteControl/RCClient/Release
 /RemoteControl/RemoteControl/x64
 /RemoteControl/RemoteControl/Debug
+/RemoteControl/RemoteControl/Release
 
 # file
 /RemoteControl/RemoteControl.sln
