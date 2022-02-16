@@ -162,10 +162,8 @@ BOOL CClientController::SendCommandPacket(const int nCmd, BOOL autoClose, const 
 	SendPacket(CPkt(nCmd, pData, nLength, hEvent), *plstRecved, autoClose);
 	if (plstRecved->size() > 0) {
 		
-		if (plstRecved->size() == 1) {
-			CloseHandle(hEvent);
-			return plstRecved->front().getCmd();
-		}
+		CloseHandle(hEvent);
+		return plstRecved->front().getCmd();
 	}
 	CloseHandle(hEvent);
 	return -1;
@@ -202,7 +200,8 @@ void CClientController::threadDownloadFile() {
  	}
 
 	TRACE(TEXT("Download file path : %s\r\n"), m_remoteFilePath);
-	int ret = SendCommandPacket(4, FALSE, (BYTE*)(LPCTSTR)m_remoteFilePath, m_remoteFilePath.GetLength());
+	std::list<CPkt> lstRecved;
+	int ret = SendCommandPacket(4, FALSE, (BYTE*)(LPCTSTR)m_remoteFilePath, m_remoteFilePath.GetLength(), &lstRecved);
 	if (ret < 0) {
 		AfxMessageBox(TEXT("下载命令失败\r\n"));
 		TRACE(TEXT("下载命令失败, return = %d\r\n"), ret);
@@ -211,8 +210,8 @@ void CClientController::threadDownloadFile() {
 
 	//  第一个包为长度
 	//  最后一个包为空代表结束
-	CCliSocket* pClient = CCliSocket::getInstance();
-	long long nlength = *((long long*)pClient->getPkt().getStrData().c_str());
+	long long nlength = *((long long*)lstRecved.front().getStrData().c_str());
+	lstRecved.pop_front(); //  第一个包一定存在所以没有判断lstRecved是否为空
 	if (nlength == 0) {
 		//  文件打开失败或长度为0字节
 		AfxMessageBox(TEXT("文件打开失败或长度为0字节"));
@@ -232,18 +231,23 @@ void CClientController::threadDownloadFile() {
 	// -----------------添加线程函数---------------------------------
 
 	while (cnt < nlength) {
-		ret = CClientController::getInstance()->DealRequest();
-		if (ret == FALSE) {
-			AfxMessageBox(TEXT("断开连接或包已全部解析完毕"));
-			TRACE(TEXT("文件传输失败, return = %d\r\n"), ret);
-			fclose(pf);
-			return;
+// 		ret = CClientController::getInstance()->DealRequest();
+// 		if (ret == FALSE) {
+// 			AfxMessageBox(TEXT("断开连接或包已全部解析完毕"));
+// 			TRACE(TEXT("文件传输失败, return = %d\r\n"), ret);
+// 			fclose(pf);
+// 			return;
+// 		}
+		if (lstRecved.size() <= 0) {
+			break;
 		}
-		fwrite(pClient->getPkt().getStrData().c_str(), 1, pClient->getPkt().getStrData().size(), pf);
-		cnt += pClient->getPkt().getStrData().size();
-		if (pClient->getPkt().getStrData().size() == 0) {
+		
+		fwrite(lstRecved.front().getStrData().c_str(), 1, lstRecved.front().getStrData().size(), pf);
+		cnt += lstRecved.front().getStrData().size();
+		if (lstRecved.front().getStrData().size() == 0) {
 			// ...
 		}
+		lstRecved.pop_front();
 	}
 	// -------------------------------------------------------------
 

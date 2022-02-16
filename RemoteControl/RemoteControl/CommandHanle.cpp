@@ -139,12 +139,12 @@ BOOL CCommandHanle::DownloadFile(std::list<CPkt>& lstPkt, CPkt& inPkt) {
 
 	lstPkt.push_back(CPkt(4, (BYTE*)&dlen, 8));    //  文件大小
 
-	char buf[1024] = {};
+	char buf[40960] = {};
 	size_t rlen = 0;
 	do {
-		rlen = fread(buf, 1, 1024, pf);
+		rlen = fread(buf, 1, 40960, pf);
 		lstPkt.push_back(CPkt(4, (BYTE*)buf, rlen));
-	} while (rlen >= 1024);
+	} while (rlen >= 40960);
 	lstPkt.push_back(CPkt(4, NULL, 0));    //  代表结尾
 	fclose(pf);
 	return TRUE;

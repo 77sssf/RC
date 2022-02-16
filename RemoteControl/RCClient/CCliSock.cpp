@@ -191,9 +191,6 @@ void CCliSocket::threadEntryForSocket(void* arg) {
 
 void CCliSocket::threadSocket() {
 
-// 	std::string strBuffer;
-// 	strBuffer.resize(BUF_SIZ);
-// 	char* pBuf = (char*)strBuffer.c_str();
 	char* buf = m_buf.data();
 	int idx = 0;
 	while (TRUE) {
@@ -243,11 +240,11 @@ void CCliSocket::threadSocket() {
 			} while (it0->second == FALSE);
 
 			m_listSend.pop_front();
+			closeSock();
 		}
 		else {
 			Sleep(30);
 		}
-		closeSock();
 	}
 	return;
 }
@@ -256,7 +253,8 @@ BOOL CCliSocket::sendPkt(const CPkt& pkt, std::list<CPkt>& lstRecved, BOOL autoC
 	m_listSend.push_back(pkt);
 	m_mapAutoClose.insert(std::pair<HANDLE, BOOL>(pkt.m_hEvnet, autoClose));
 	m_mapAck.insert(std::pair<HANDLE, std::list<CPkt>&>(pkt.m_hEvnet, lstRecved));
-	WaitForSingleObject(pkt.m_hEvnet, INFINITE);
+
+	WaitForSingleObject(pkt.m_hEvnet, INFINITE);	//  Wait ... 
 
 	std::map<HANDLE, BOOL>::iterator it0 = m_mapAutoClose.find(pkt.m_hEvnet);
 	std::map<HANDLE, std::list<CPkt>&>::iterator it1 = m_mapAck.find(pkt.m_hEvnet);
