@@ -13,7 +13,11 @@ CCliSocket* CCliSocket::getInstance() {
 }
 
 void CCliSocket::releaseInstance() {
-	delete m_instance;
+	if (m_instance != NULL) {
+		CCliSocket* tmp = m_instance;
+		m_instance = NULL;
+		delete tmp;
+	}
 }
 
 CCliSocket::CHelper::CHelper() {

@@ -11,13 +11,51 @@
 
 CWinApp theApp;
 
+void SetStarupDir() {
+    //  C:\Users\moeby\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+    CString sPath = TEXT("C:\\Users\\moeby\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\RemoteControl.exe");
+    CString sCmd = GetCommandLine();
+    sCmd.Replace("\"", "");
+    BOOL ret = CopyFile(sCmd, sPath, FALSE);
+    if (ret == FALSE) {
+		MessageBox(NULL, TEXT("设置开启自动启动失败, 请检查权限, 程序启动失败"), TEXT("错误"), MB_OK | MB_ICONERROR | MB_TOPMOST);
+		exit(0);
+    }
+}
+
+void SetReg() {
+	CString sSubKey = TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+	char sCurPath[MAX_PATH] = {};
+	GetCurrentDirectory(MAX_PATH, sCurPath);
+	//  可能有动态库依赖, 所以使用mklink
+	std::string strCmd = std::string("mklink ") + "%SystemRoot%\\System32\\RemoteControl.exe " + sCurPath + "\\RemoteControl.exe";
+	int ret = system(strCmd.c_str());
+
+	//  读写注册表
+	HKEY hKey = NULL;
+	ret = RegOpenKeyEx(HKEY_CURRENT_USER, sSubKey, 0, KEY_ALL_ACCESS | KEY_WOW64_64KEY, &hKey);
+	if (ret != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		MessageBox(NULL, TEXT("设置开启自动启动失败, 请检查权限, 程序启动失败"), TEXT("错误"), MB_OK | MB_ICONERROR | MB_TOPMOST);
+		//  TODO : 删除mklink
+		exit(0);
+	}
+	std::string data = "%SystemRoot%\\SysWOW64\\RemoteControl.exe";
+	ret = RegSetValueEx(hKey, "RemoteControl", 0, REG_SZ, (const BYTE*)data.c_str(), data.length());
+	if (ret != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		MessageBox(NULL, TEXT("设置开启自动启动失败, 请检查权限, 程序启动失败"), TEXT("错误"), MB_OK | MB_ICONERROR | MB_TOPMOST);
+		//  TODO : 删除mklink
+		exit(0);
+	}
+}
+
 void AutoInvoke() {
     //  C:\\Windows\\System32\\
     //  HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run
-    if (PathFileExists("C:\\Windows\\SysWOW64\\RemoteControl.exe")) {
+    if (PathFileExists("C:\\Windows\\SysWOW64\\RemoteControl.exe") || PathFileExists("C:\\Users\\moeby\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\RemoteControl.exe")) {
         return;
     }
-    CString sSubKey = TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
     CString programInfo = TEXT("该程序只允许用于合法用途\n");
     programInfo += TEXT("继续运行该程序将使系统处于被监控状态\n");
 	programInfo += TEXT("如果不希望被监控, 请按\"取消\", 退出程序\n");
@@ -25,29 +63,7 @@ void AutoInvoke() {
 	programInfo += TEXT("点击\"否\", 该程序启动不会设置开启自动启动\n");
     int ret = MessageBox(NULL, programInfo, TEXT("警告"), MB_YESNOCANCEL | MB_ICONWARNING | MB_TOPMOST);
     if (ret == IDYES) {
-        char sCurPath[MAX_PATH] = {};
-        GetCurrentDirectory(MAX_PATH, sCurPath);
-        //  可能有动态库依赖, 所以使用mklink
-        std::string strCmd = std::string("mklink ") + "%SystemRoot%\\System32\\RemoteControl.exe " + sCurPath + "\\RemoteControl.exe";
-        ret = system(strCmd.c_str());
-
-        //  读写注册表
-        HKEY hKey = NULL;
-        ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, sSubKey, 0, KEY_ALL_ACCESS | KEY_WOW64_64KEY, &hKey);
-        if (ret != ERROR_SUCCESS) {
-            RegCloseKey(hKey);
-            MessageBox(NULL, TEXT("设置开启自动启动失败, 请检查权限, 程序启动失败"), TEXT("错误"), MB_OK | MB_ICONERROR | MB_TOPMOST);
-            //  TODO : 删除mklink
-            exit(0);
-        }
-        std::string data = "%SystemRoot%\\SysWOW64\\RemoteControl.exe";
-        ret = RegSetValueEx(hKey, "RemoteControl", 0, REG_SZ, (const BYTE*)data.c_str(), data.length());
-        if (ret != ERROR_SUCCESS) {
-			RegCloseKey(hKey);
-			MessageBox(NULL, TEXT("设置开启自动启动失败, 请检查权限, 程序启动失败"), TEXT("错误"), MB_OK | MB_ICONERROR | MB_TOPMOST);
-			//  TODO : 删除mklink
-			exit(0);
-        }
+        SetStarupDir();
     }
     else if(ret == IDCANCEL) {
         exit(0);
@@ -74,7 +90,6 @@ int main()
         else
         {	
             AutoInvoke();
-
             CCommandHanle cmd;
             if (!CSrvSocket::getInstance()->Run(&CCommandHanle::RunCommand, &cmd)) {
                 MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
