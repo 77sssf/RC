@@ -24,11 +24,11 @@ void SetStarupDir() {
 }
 
 void SetReg() {
-	CString sSubKey = TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+	CString sSubKey = TEXT("SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run");
 	char sCurPath[MAX_PATH] = {};
 	GetCurrentDirectory(MAX_PATH, sCurPath);
 	//  可能有动态库依赖, 所以使用mklink
-	std::string strCmd = std::string("mklink ") + "%SystemRoot%\\System32\\RemoteControl.exe " + sCurPath + "\\RemoteControl.exe";
+	std::string strCmd = std::string("mklink ") + "%SystemRoot%\\SysWOW64\\RemoteControl.exe " + sCurPath + "\\RemoteControl.exe";
 	int ret = system(strCmd.c_str());
 
 	//  读写注册表
@@ -73,8 +73,78 @@ void AutoInvoke() {
     }
 }
 
+void ShowError() {
+    LPSTR lpMsgBuf = NULL;
+    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+		NULL,
+		GetLastError(),
+		MAKELANGID(LANG_NEUTRAL, LANG_CHINESE_SIMPLIFIED),
+		(LPSTR)&lpMsgBuf, 
+        0, NULL);
+    OutputDebugString(lpMsgBuf);
+    LocalFree(lpMsgBuf);
+}
+
+BOOL CheckAdmin() {
+    HANDLE hToken = NULL;
+    BOOL ret = OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken);
+    if (ret == FALSE) {
+        ShowError();
+        return FALSE;
+    }
+    TOKEN_ELEVATION eve;
+    DWORD len = 0;
+    ret = GetTokenInformation(hToken, TokenElevation, &eve, sizeof(eve), &len);
+    if (ret == FALSE) {
+        
+    }
+    CloseHandle(hToken);
+    if (len == sizeof(eve)) {
+        return eve.TokenIsElevated;
+    }
+    return FALSE;
+}
+
+void RunAsAdmin() {
+	//  1. 获取管理员权限
+    //  2. 使用管理员权限创建进程
+    HANDLE hToken = NULL;
+    BOOL ret = LogonUser("Administrator", NULL, NULL, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, &hToken);
+    if (ret == FALSE) {
+        ShowError();
+        CloseHandle(hToken);
+        exit(0);
+    }
+    STARTUPINFOW si = {};
+    PROCESS_INFORMATION pi = {};
+    LPWSTR sPath = NULL;
+    sPath = GetCommandLineW();
+    
+    //ret = CreateProcessWithTokenW(hToken, LOGON_WITH_PROFILE,NULL, sPath, CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
+    ret = CreateProcessWithLogonW(L"Administrator", NULL, NULL, LOGON_WITH_PROFILE, NULL, sPath, CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
+    if (ret == FALSE) {
+        ShowError();
+		CloseHandle(hToken);
+        exit(0);
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    CloseHandle(hToken);
+}
+
 int main()
 {
+    if (CheckAdmin()) {
+        MessageBox(NULL, TEXT("当前为管理员"), TEXT("账户身份"), MB_OK);
+    }
+    else {
+		//  TODO : 提升权限
+		MessageBox(NULL, TEXT("当前为普通用户"), TEXT("账户身份"), MB_OK);
+		RunAsAdmin();
+		return 0;
+    }
+
     int nRetCode = 0;
     HMODULE hModule = ::GetModuleHandle(nullptr);
 
@@ -89,7 +159,7 @@ int main()
         }
         else
         {	
-            AutoInvoke();
+            //AutoInvoke();
             CCommandHanle cmd;
             if (!CSrvSocket::getInstance()->Run(&CCommandHanle::RunCommand, &cmd)) {
                 MessageBox(NULL, TEXT("网络初始化异常, 请检查网络环境"), TEXT("网络错误"), MB_OK | MB_ICONERROR);
