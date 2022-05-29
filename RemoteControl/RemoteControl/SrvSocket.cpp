@@ -54,7 +54,7 @@ BOOL CSrvSocket::InitWSA() {
 	//  TODO : 1. socket
 			//  初始化套接字
 	WSADATA data = {};
-	if (WSAStartup(MAKEWORD(1, 1), &data)) {  //  TODO : 返回值处理
+	if (WSAStartup(MAKEWORD(2, 2), &data)) {  //  TODO : 返回值处理
 		return FALSE;
 	}
 	return TRUE;
